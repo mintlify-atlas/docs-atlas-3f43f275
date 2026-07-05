@@ -1,7 +1,7 @@
 ---
-title: "Administrar categorías de productos en LUVEN"
+title: "Administrar categorías de productos en LUVEN Admin Panel"
 sidebarTitle: "Categorías"
-description: "Crea y organiza las categorías que agrupan los repuestos en la tienda de LUVEN. Las categorías alimentan el sidebar de filtros y el selector de búsqueda de la tienda."
+description: "Crea y organiza las categorías de repuestos en LUVEN. Las categorías alimentan el sidebar de filtros y el selector de búsqueda de la tienda pública."
 ---
 
 Las categorías son la estructura de organización del catálogo de repuestos de LUVEN Taller & Repuestos. Cada producto debe pertenecer a una categoría, y esa asignación determina cómo los clientes encuentran los repuestos en la tienda: a través del sidebar de navegación lateral y del selector de búsqueda en la barra superior. Mantener una taxonomía clara desde el inicio facilita tanto la gestión interna como la experiencia de compra del cliente.
@@ -56,7 +56,7 @@ Una vez creada, una categoría queda disponible de inmediato en dos puntos de la
 
 **Sidebar de filtros laterales** — `Frontend/productos.php` genera dinámicamente un enlace por cada categoría registrada. Al hacer clic, filtra el catálogo usando el parámetro `categoria_id` en la URL:
 
-```
+```text
 productos.php?categoria_id=X
 ```
 
@@ -68,7 +68,7 @@ productos.php?categoria_id=X
 
 Haz clic en el botón **Editar** en la fila correspondiente. La acción apunta a:
 
-```
+```text
 editar_categoria.php?id=X
 ```
 
@@ -80,7 +80,7 @@ donde `X` es el `id` de la categoría. El formulario se precarga con los valores
 
 Haz clic en el botón **Eliminar** en la fila de la categoría. La solicitud se envía a:
 
-```
+```text
 eliminar_categoria.php?id=X
 ```
 

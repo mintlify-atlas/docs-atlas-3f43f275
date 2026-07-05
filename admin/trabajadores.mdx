@@ -67,6 +67,15 @@ El formulario de alta usa `POST` con `action = 'guardar_trabajador'`. Todos los 
   Clave foránea hacia la tabla `cargos`. Se presenta como un selector desplegable poblado con los cargos existentes. Debe existir al menos un cargo antes de poder registrar trabajadores.
 </ParamField>
 
+Al confirmar el formulario, el sistema ejecuta la siguiente inserción en la base de datos:
+
+```sql
+INSERT INTO trabajadores (cargo_id, nombre, apellido, telefono, dni, activo)
+VALUES (?, ?, ?, ?, ?, ?);
+```
+
+El valor de `activo` se envía siempre como `1` desde el código; no existe un campo visible para ese parámetro en el formulario.
+
 <Note>
   El campo `activo` en la tabla `trabajadores` se fija en `1` al crear cualquier registro. Para desactivar temporalmente a un trabajador sin eliminar su historial, puedes actualizar ese valor a `0` directamente en la base de datos. El registro se conserva pero puede filtrarse en consultas que solo traigan personal activo.
 </Note>

@@ -1,7 +1,7 @@
 ---
 title: "Cómo acceder al panel de administración de LUVEN"
 sidebarTitle: "Acceso Admin"
-description: "Crea un usuario administrador en MySQL y accede al panel de control de LUVEN. Incluye el flujo de autenticación, gestión de sesión y cierre de sesión seguro."
+description: "Crea un usuario admin en MySQL e inicia sesión en LUVEN. Flujo de autenticación con auth.php, variables de sesión PHP y proceso de logout."
 ---
 
 El acceso al panel de administración de LUVEN está restringido a usuarios con el rol `admin` almacenado en la base de datos MySQL. La autenticación es gestionada por `adisionales/auth.php`, que valida las credenciales enviadas desde el formulario de inicio de sesión, establece las variables de sesión PHP correspondientes y redirige automáticamente según el rol del usuario autenticado. A continuación se describe el proceso completo desde la creación del usuario hasta el cierre de sesión.
@@ -83,10 +83,10 @@ El acceso al panel de administración de LUVEN está restringido a usuarios con 
     Para finalizar la sesión, haz clic en el enlace **Salir** ubicado en la barra de navegación superior del panel. Este enlace apunta a:
 
     ```
-    adisionales/auth.php?accion=logout
+    ../adisionales/auth.php?accion=logout
     ```
 
-    El controlador destruye la sesión PHP activa con `session_destroy()` y redirige al usuario a la página de inicio de sesión. Después del logout, cualquier intento de acceder a una URL de `ADMIN/` directamente resultará en una redirección inmediata al login.
+    Al acceder a esta URL, la sesión PHP activa queda invalidada y el usuario es redirigido a la página de inicio de sesión. Después del logout, cualquier intento de acceder a una URL de `ADMIN/` directamente resultará en una redirección inmediata al login, ya que el guard de sesión ya no encontrará `$_SESSION['rol'] === 'admin'`.
   </Step>
 </Steps>
 

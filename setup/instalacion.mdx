@@ -1,5 +1,5 @@
 ---
-title: "Instalar LUVEN en un servidor local con XAMPP"
+title: "Instalar LUVEN Taller y Repuestos en XAMPP paso a paso"
 sidebarTitle: "Instalación"
 description: "Pasos completos para instalar LUVEN Taller & Repuestos en XAMPP. Incluye clonado del repositorio, configuración de Apache y primer acceso al sistema."
 ---
@@ -22,7 +22,7 @@ La instalación de LUVEN consiste en colocar el proyecto dentro del directorio r
   <Step title="Colocar el proyecto en htdocs">
     Verifica que la estructura quede exactamente en esta ruta:
 
-    ```
+    ```text
     C:/xampp/htdocs/Proyecto_mecanica/
     ```
 
@@ -41,7 +41,7 @@ La instalación de LUVEN consiste en colocar el proyecto dentro del directorio r
   <Step title="Crear la base de datos en phpMyAdmin">
     Accede a phpMyAdmin desde tu navegador:
 
-    ```
+    ```text
     http://localhost/phpmyadmin
     ```
 
@@ -71,7 +71,7 @@ La instalación de LUVEN consiste en colocar el proyecto dentro del directorio r
   <Step title="Crear los directorios de subida de imágenes">
     El sistema sube imágenes a tres subdirectorios de `assets/img/`. Crea estas carpetas si no existen:
 
-    ```
+    ```text
     assets/img/productos/
     assets/img/marcas/
     assets/img/modelos/
@@ -83,13 +83,13 @@ La instalación de LUVEN consiste en colocar el proyecto dentro del directorio r
   <Step title="Abrir la aplicación en el navegador">
     Con Apache y MySQL en ejecución, accede a la aplicación desde:
 
-    ```
+    ```text
     http://localhost/Proyecto_mecanica/
     ```
 
     Verás la página de inicio (`index.html`). Desde allí puedes navegar a la tienda, servicios y el formulario de citas. Para acceder al panel de administración ve a:
 
-    ```
+    ```text
     http://localhost/Proyecto_mecanica/ADMIN/admin.php
     ```
 
@@ -99,7 +99,7 @@ La instalación de LUVEN consiste en colocar el proyecto dentro del directorio r
 
 ## Estructura del proyecto
 
-```
+```text
 Proyecto_mecanica/
 ├── index.html                  # Landing page pública
 ├── adisionales/                # Conexión a DB, autenticación y utilidades compartidas

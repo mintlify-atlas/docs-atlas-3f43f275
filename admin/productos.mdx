@@ -1,7 +1,7 @@
 ---
-title: "Gestionar productos y repuestos en LUVEN Admin"
+title: "Gestionar productos y repuestos en LUVEN Admin Panel"
 sidebarTitle: "Productos"
-description: "Agrega, edita y elimina productos en el catálogo de LUVEN. Controla el stock, asigna categorías y marcas, y sube imágenes desde el panel de administración."
+description: "Agrega, edita y elimina productos en LUVEN. Controla el stock, asigna categorías y marcas, y sube imágenes desde el panel de administración."
 ---
 
 El módulo de Productos es el núcleo del catálogo de repuestos de LUVEN Taller & Repuestos. Desde aquí puedes registrar cada pieza o accesorio con su precio en soles, nivel de stock, categoría y marca asociada. Los cambios que realices se reflejan de inmediato en la tienda pública, siempre que el producto esté activo.
@@ -81,8 +81,8 @@ El comportamiento del producto en la tienda pública depende del campo `activo` 
 |---|---|
 | `activo = 1` | El producto es visible en `Frontend/productos.php` |
 | `activo = 0` | El producto está oculto en la tienda, pero permanece en la base de datos |
-| `stock <= 3` | La tarjeta del producto muestra la insignia **"¡Pocas Unidades!"** |
-| `stock <= 5` | El dashboard del admin muestra una alerta de stock bajo para ese producto |
+| `stock <= 3 && stock > 0` | La tarjeta del producto muestra la insignia **"¡Pocas Unidades!"** en `Frontend/productos.php` |
+| `stock <= 5` | El dashboard del admin (`ADMIN/admin.php`) muestra una alerta de stock bajo para ese producto |
 | `stock = 0` | El producto puede quedar sin disponibilidad; considera desactivarlo temporalmente |
 
 <Tip>
@@ -95,7 +95,7 @@ El comportamiento del producto en la tienda pública depende del campo `activo` 
 
 Haz clic en el botón **Editar** en la fila correspondiente de la tabla. La acción apunta a:
 
-```
+```text
 editar_producto.php?id=X
 ```
 
@@ -107,7 +107,7 @@ donde `X` es el `id` del producto. El formulario de edición se precarga con los
 
 Haz clic en el botón **Eliminar** en la fila del producto. Antes de ejecutar la acción, el sistema muestra un cuadro de confirmación de JavaScript para prevenir eliminaciones accidentales. Al confirmar, la solicitud se envía a:
 
-```
+```text
 eliminar_producto.php?id=X
 ```
 

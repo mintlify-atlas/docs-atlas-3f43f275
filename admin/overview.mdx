@@ -1,7 +1,7 @@
 ---
-title: "Panel de Administración de LUVEN: guía general"
+title: "Panel de Administración LUVEN: guía del back-office"
 sidebarTitle: "Visión General"
-description: "El panel de control de LUVEN centraliza la gestión de productos, servicios, citas, personal y catálogo. Requiere rol admin activo en sesión PHP."
+description: "Panel de administración de LUVEN: gestiona productos, servicios, citas, categorías, marcas, modelos y trabajadores con rol admin en sesión PHP."
 ---
 
 El panel de administración de LUVEN Taller & Repuestos es el back-office principal del sistema. Reside en `ADMIN/admin.php` y actúa como punto de entrada para todas las operaciones administrativas: inventario de repuestos, gestión de servicios, programación de citas, administración de trabajadores y mantenimiento del catálogo (categorías, marcas y modelos de vehículos). Cualquier usuario que intente acceder sin una sesión PHP válida con rol `admin` es redirigido automáticamente a la página de inicio de sesión.
@@ -11,6 +11,8 @@ El panel de administración de LUVEN Taller & Repuestos es el back-office princi
 Cada archivo dentro de la carpeta `ADMIN/` valida la sesión activa en las primeras líneas del script. Si la variable de sesión `$_SESSION['rol']` no existe o su valor no es exactamente `'admin'`, PHP emite una redirección HTTP y detiene la ejecución:
 
 ```php
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
 if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
     header("Location: ../Frontend/login.php");
     exit;
@@ -85,19 +87,19 @@ La barra lateral está presente en todas las vistas del panel y permite acceder 
 |---|---|
 | **Inicio** | `ADMIN/admin.php` |
 | **Productos** | `ADMIN/productos/CRUDProductos.php` |
-| **Servicios** | `ADMIN/servisios/CRUDServicios.php` |
+| **Servicios** | `ADMIN/servicios/CRUDServicios.php` |
 | **Citas** | `ADMIN/citas/CRUDCitas.php` |
-| **Categorías** | `ADMIN/categoria/CRUDCategorias.php` |
+| **Categorías** | `ADMIN/categorias/CRUDCategorias.php` |
 | **Marcas** | `ADMIN/marcas/CRUDMarcas.php` |
 | **Modelos** | `ADMIN/modelos_De_veiculos/CRUDModelos.php` |
 | **Trabajadores** | `ADMIN/trabajadores/CRUDTrabajadores.php` |
 
 ## Cierre de sesión
 
-El enlace **Salir** ubicado en la barra de navegación superior invoca el controlador de autenticación con la acción `logout`:
+El enlace **Salir** ubicado en la barra de navegación superior apunta al controlador de autenticación con la acción `logout`:
 
 ```
-adisionales/auth.php?accion=logout
+../adisionales/auth.php?accion=logout
 ```
 
-Este endpoint destruye la sesión PHP activa y redirige al usuario a la página de inicio de sesión, impidiendo cualquier acceso posterior sin reautenticación.
+Al seguir este enlace, la sesión PHP activa queda invalidada y el usuario es redirigido a la página de inicio de sesión, impidiendo cualquier acceso posterior a `ADMIN/` sin reautenticación.

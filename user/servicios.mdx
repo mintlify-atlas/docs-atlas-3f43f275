@@ -1,7 +1,7 @@
 ---
-title: "Explorar el catálogo de servicios mecánicos"
+title: "Catálogo público de servicios mecánicos en LUVEN"
 sidebarTitle: "Servicios"
-description: "Navega el catálogo de servicios de LUVEN Taller & Repuestos. Cada servicio muestra descripción, duración estimada y precio. Reserva desde la misma tarjeta."
+description: "Navega el catálogo de servicios de LUVEN. Cada servicio muestra descripción, duración estimada y precio. Reserva tu cita desde la tarjeta."
 ---
 
 La página de servicios de LUVEN (`Frontend/servisios.php`) muestra todas las operaciones mecánicas disponibles en el taller. El catálogo se carga dinámicamente desde la base de datos en cada visita, de modo que cualquier servicio creado o modificado por el administrador aparece de forma inmediata para el usuario. Desde cada tarjeta de servicio es posible ir directamente al formulario de citas con el servicio preseleccionado.
@@ -10,7 +10,7 @@ La página de servicios de LUVEN (`Frontend/servisios.php`) muestra todas las op
 
 ## URL de acceso
 
-```
+```text
 Frontend/servisios.php
 ```
 
@@ -84,7 +84,7 @@ Cada tarjeta de servicio presenta los siguientes campos tomados directamente de 
 
 Cada tarjeta incluye un botón de acción directo que lleva al formulario de citas con el servicio correspondiente preseleccionado. El `id` del servicio se pasa como parámetro GET en la URL:
 
-```
+```text
 ../modulos/citas/agendar.php?servicio_id=X
 ```
 

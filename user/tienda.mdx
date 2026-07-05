@@ -1,5 +1,5 @@
 ---
-title: "Comprar repuestos en la tienda en línea de LUVEN"
+title: "Tienda de repuestos automotrices en línea de LUVEN"
 sidebarTitle: "Tienda"
 description: "Busca y filtra repuestos automotrices por categoría, marca o modelo de vehículo. Explora el catálogo de productos activos con stock en tiempo real."
 ---
@@ -10,7 +10,7 @@ La tienda de LUVEN (`Frontend/productos.php`) centraliza todo el inventario de r
 
 ## URL de acceso
 
-```
+```text
 Frontend/productos.php
 ```
 
@@ -93,11 +93,11 @@ Un campo de búsqueda de texto libre con un selector de categoría integrado. Al
 
 Debajo del buscador, se muestra una fila de círculos con el logo de cada marca registrada en la tabla `marcas`. Al hacer clic en un círculo, la URL cambia a:
 
-```
+```text
 Frontend/productos.php?marca={slug_de_la_marca}
 ```
 
-La marca activa se resalta visualmente con la clase CSS `marca-activa`.
+La marca activa se resalta visualmente con la clase CSS `marca-activa`. El valor `{slug_de_la_marca}` proviene de la columna `slug` de la tabla `marcas`.
 
 <Tip>
   Usa los círculos de marcas en la parte superior de la tienda para filtrar el catálogo por fabricante de vehículo (Toyota, Honda, Nissan, etc.) con un solo clic. Puedes combinarlos con el selector de categoría del buscador para encontrar, por ejemplo, filtros de aceite solo para Toyota.
@@ -121,12 +121,12 @@ Cada producto en la cuadrícula muestra:
 | Nombre | Campo `nombre` de la tabla `productos` |
 | Descripción | Campo `descripcion` (fallback: `"Sin especificaciones técnicas adicionales."`) |
 | Precio | Formato `S/. X.XX` con `number_format($precio, 2)` |
-| Badge de stock | `"¡Pocas Unidades!"` cuando `stock <= 3 AND stock > 0` |
+| Badge de stock | `"¡Pocas Unidades!"` cuando `stock <= 3 && stock > 0` |
 | Botón de detalle | Enlace a `detalle_producto.php?id={id}` |
 
 ### Badge de stock bajo
 
-El badge de alerta aparece superpuesto sobre la imagen del producto cuando las unidades disponibles son tres o menos:
+El badge de alerta aparece superpuesto sobre la imagen del producto cuando las unidades disponibles son tres o menos (y mayores que cero):
 
 ```php Frontend/productos.php
 <?php if ($prod['stock'] <= 3 && $prod['stock'] > 0): ?>
@@ -141,17 +141,17 @@ El badge de alerta aparece superpuesto sobre la imagen del producto cuando las u
 Al hacer clic en un círculo de marca, se navega a `Frontend/marca_detalle.php`. Esta página muestra primero los modelos de vehículo asociados a la marca y luego los repuestos disponibles para esa marca.
 
 **URL base por marca:**
-```
+```text
 Frontend/marca_detalle.php?slug=toyota
 ```
 
 **Filtrar por modelo dentro de la marca:**
-```
+```text
 Frontend/marca_detalle.php?slug=toyota&modelo=Corolla
 ```
 
 <ParamField query="slug" type="string" required>
-  Identificador único de la marca en la tabla `marcas`. Ejemplo: `toyota`, `honda`, `nissan`.
+  Identificador único de la marca en la columna `slug` de la tabla `marcas`. Ejemplo: `toyota`, `honda`, `nissan`.
 </ParamField>
 
 <ParamField query="modelo" type="string">
@@ -177,7 +177,7 @@ $sqlProds .= " ORDER BY id DESC";
 
 Cuando ningún producto coincide con los filtros activos, la tienda muestra un mensaje centrado en la cuadrícula:
 
-```
+```text
 No se encontraron productos disponibles bajo esta selección.
 ```
 

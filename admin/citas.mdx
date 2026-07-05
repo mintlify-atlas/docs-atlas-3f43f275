@@ -47,7 +47,7 @@ La tabla `citas` actúa como entidad central que referencia tres tablas de sopor
 
 Cada cita transita por un conjunto fijo de estados representados visualmente como badges con color en la columna **Estado**. El flujo normal es:
 
-```
+```text
 Pendiente → Confirmada → Completada
 ```
 
@@ -64,7 +64,7 @@ En cualquier punto del ciclo, una cita puede moverse al estado `Cancelado`. Los 
 
 Para cambiar el estado de una cita, usa el botón **Editar** en la columna de acciones. Esto redirige a:
 
-```
+```text
 editar_cita.php?id=X
 ```
 
@@ -74,7 +74,7 @@ Desde esa página es posible actualizar el campo `estado` al valor que correspon
 
 El botón **Eliminar** ejecuta una confirmación en JavaScript antes de redirigir a:
 
-```
+```text
 eliminar_cita.php?id=X
 ```
 
@@ -88,15 +88,15 @@ La eliminación es permanente: el registro desaparece de la base de datos y no p
 
 Cuando un cliente selecciona una fecha en el formulario público, el sistema consulta los turnos ya ocupados para ese día y los excluye del selector. Los seis bloques horarios fijos disponibles son: `08:00`, `09:30`, `11:00`, `14:00`, `15:30` y `17:00`.
 
-El endpoint `Frontend/verificar_disponibilidad.php` recibe la fecha como parámetro y devuelve un arreglo JSON con las horas ya reservadas:
+El endpoint `Frontend/verificar_disponibilidad.php` recibe la fecha como parámetro GET y devuelve un arreglo JSON con las horas ya reservadas. La consulta usa la columna `fecha_registro` (no `fecha`) para comparar la fecha, y extrae la columna `hora_seleccionada`:
 
 ```sql
 -- Called by Frontend/verificar_disponibilidad.php?fecha=YYYY-MM-DD
 SELECT hora_seleccionada
 FROM citas
-WHERE fecha_registro = :fecha
+WHERE fecha_registro = ?
   AND estado != 'Cancelado';
--- Returns JSON array: ["08:00", "14:00"]
+-- Returns JSON array e.g.: ["08:00", "14:00"]
 ```
 
 Las citas con estado `Cancelado` quedan excluidas de esta consulta, de modo que el horario vuelve a estar disponible de forma inmediata para cualquier otra reserva. Esto hace que cambiar el estado a `Cancelado` sea preferible a la eliminación directa cuando se desea liberar un turno.

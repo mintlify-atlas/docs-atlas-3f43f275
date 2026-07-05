@@ -1,7 +1,7 @@
 ---
-title: "Gestionar marcas y modelos de vehículos en LUVEN"
+title: "Gestionar marcas y modelos de vehículos en LUVEN Admin"
 sidebarTitle: "Marcas y Modelos"
-description: "Agrega marcas de vehículos con slug e imagen, y asocia modelos a cada marca. Las marcas habilitan el filtrado de repuestos por fabricante en la tienda pública."
+description: "Agrega marcas con slug e imagen y asocia modelos a cada marca. Las marcas habilitan el filtrado de repuestos por fabricante en la tienda pública de LUVEN."
 ---
 
 Las marcas y modelos de vehículos forman el sistema de filtrado por compatibilidad de LUVEN Taller & Repuestos. Al registrar una marca con su slug único e imagen, habilitas su aparición como círculo clicable en la tienda. Al asociar modelos a esa marca, los clientes pueden navegar directamente a los repuestos compatibles con su vehículo específico. Ambos módulos trabajan en conjunto: primero crea la marca, luego agrega sus modelos.
@@ -39,13 +39,17 @@ El formulario envía los datos por `POST` a `procesar_marca.php` con codificaci�
 
 <ParamField body="slug" type="string" required>
   Identificador único de la marca en formato URL: solo minúsculas, sin espacios ni caracteres especiales. Ejemplo: `toyota`. Este valor se usa directamente en los parámetros de filtrado de la tienda:
-  ```
+
+  ```text
   productos.php?marca=toyota
   ```
+
   y en la URL de la página de detalle de la marca:
-  ```
+
+  ```text
   marca_detalle.php?slug=toyota
   ```
+
   Una vez asignado y utilizado en URLs, evita modificar el slug para no romper enlaces existentes.
 </ParamField>
 
@@ -106,7 +110,7 @@ Los modelos de una marca se muestran como tarjetas clicables en `Frontend/marca_
 
 Al hacer clic en la tarjeta de un modelo, la página filtra los productos compatibles usando el nombre del modelo como parámetro:
 
-```
+```text
 marca_detalle.php?slug=toyota&modelo=Corolla
 ```
 
@@ -122,7 +126,7 @@ Sigue este orden al configurar marcas, modelos y productos para garantizar que l
 
 Registra la marca en `ADMIN/marcas/CRUDMarcas.php`. Define el slug en minúsculas sin espacios y sube el logotipo.
 
-```
+```text
 Nombre: Toyota  |  Slug: toyota  |  Imagen: toyota-logo.png
 ```
 
@@ -130,7 +134,7 @@ Nombre: Toyota  |  Slug: toyota  |  Imagen: toyota-logo.png
 
 En `ADMIN/modelos_De_veiculos/CRUDModelos.php`, crea cada modelo seleccionando la marca recién creada como `marca_id`.
 
-```
+```text
 nombre_modelo: Corolla 2020  →  marca_id: (id de Toyota)
 nombre_modelo: Yaris 2021    →  marca_id: (id de Toyota)
 ```

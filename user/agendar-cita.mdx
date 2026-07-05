@@ -1,5 +1,5 @@
 ---
-title: "Agendar una cita en el taller mecánico LUVEN"
+title: "Cómo agendar una cita de mantenimiento en LUVEN Taller"
 sidebarTitle: "Agendar Cita"
 description: "Reserva una cita de mantenimiento en LUVEN con verificación de disponibilidad en tiempo real. Los horarios ocupados se marcan automáticamente en rojo."
 ---
@@ -10,7 +10,7 @@ El formulario de citas de LUVEN (`Frontend/cita.php`) permite reservar un turno 
 
 ## URL de acceso
 
-```
+```text
 Frontend/cita.php
 ```
 
@@ -22,7 +22,7 @@ No requiere sesión previa para acceder. Si el usuario tiene sesión activa, la 
 
 El formulario está dividido en tres secciones: datos personales, datos del vehículo y selección de fecha y horario. El formulario envía todo por `POST` al controlador:
 
-```
+```text
 POST ../controladores/procesar_cita.php
 ```
 
@@ -95,8 +95,8 @@ Cuando el usuario selecciona una fecha en el calendario, JavaScript realiza una 
 
 ### Endpoint de disponibilidad
 
-```
-GET Frontend/verificar_disponibilidad.php?fecha=YYYY-MM-DD
+```text
+GET ../../Frontend/verificar_disponibilidad.php?fecha=YYYY-MM-DD
 ```
 
 El endpoint consulta la tabla `citas` y devuelve un array JSON con los horarios ocupados:

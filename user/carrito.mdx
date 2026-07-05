@@ -1,16 +1,16 @@
 ---
-title: "Gestionar el carrito de compras de repuestos"
+title: "Página del carrito de compras de repuestos en LUVEN"
 sidebarTitle: "Carrito"
-description: "El carrito de LUVEN acumula repuestos seleccionados para su compra. Requiere sesión activa. Muestra el resumen del pedido con total y opción de checkout."
+description: "El carrito de LUVEN muestra los repuestos seleccionados antes del pedido. Requiere sesión activa y muestra el resumen con total y botón de checkout."
 ---
 
-El carrito de LUVEN (`Frontend/carito.php`) es la página donde el usuario revisa todos los repuestos que ha seleccionado antes de completar su pedido. La página está protegida por sesión: detecta si el usuario ha iniciado sesión y ajusta la interfaz en consecuencia. El resumen lateral muestra el total acumulado y el botón de checkout, que permanece deshabilitado mientras el carrito esté vacío.
+El carrito de LUVEN (`Frontend/carito.php`) es la página donde el usuario revisa todos los repuestos que ha seleccionado antes de completar su pedido. La página detecta si el usuario ha iniciado sesión y ajusta la interfaz en consecuencia. El resumen lateral muestra el total acumulado y el botón de checkout, que permanece deshabilitado mientras el carrito esté vacío.
 
 ---
 
 ## URL de acceso
 
-```
+```text
 Frontend/carito.php
 ```
 
@@ -32,17 +32,24 @@ La variable `$_SESSION['usuario_id']` es la que determina si se muestra el estad
 
 Si un usuario no autenticado hace clic en el icono del carrito desde cualquier página de la tienda o de servicios, es redirigido al login con un mensaje de alerta y el parámetro de retorno:
 
-```
+```text
 Frontend/login.php?redirigir=carrito&error=1
 ```
 
-Esto activa la alerta informativa en el formulario de login: `"Para continuar es necesario que se registre o inicie sesión."`. Una vez autenticado, el parámetro `redirigir=carrito` permite que el sistema devuelva al usuario al carrito automáticamente.
+Esto activa la alerta informativa en el formulario de login: `"Para continuar es necesario que se registre o inicie sesión."`.
 
 ---
 
 ## Estado vacío del carrito
 
-Cuando `$carrito_vacio` es `true` (o el usuario no tiene productos agregados), se muestra una pantalla de estado vacío centrada con icono, mensaje y dos botones de acción:
+La implementación actual de `Frontend/carito.php` es un scaffold de interfaz: `$carrito_vacio` está fijado en `true` de forma explícita en el código, por lo que la pantalla de carrito vacío siempre se muestra independientemente de si el usuario ha agregado productos:
+
+```php Frontend/carito.php
+// Simulamos que el carrito está vacío para ver la alerta o el diseño base
+$carrito_vacio = true;
+```
+
+Cuando `$carrito_vacio` es `true`, se muestra una pantalla centrada con icono, mensaje y dos botones de acción:
 
 ```php Frontend/carito.php
 <?php if ($carrito_vacio): ?>
@@ -74,11 +81,11 @@ Cuando `$carrito_vacio` es `true` (o el usuario no tiene productos agregados), s
 
 ## Layout de dos columnas
 
-Cuando el carrito tiene productos, la página utiliza un layout de dos columnas:
+La página define un layout de dos columnas para cuando el carrito tenga productos. Actualmente la columna de productos no se activa porque `$carrito_vacio = true` está codificado de forma fija:
 
-### Columna izquierda — Lista de productos
+### Columna izquierda — Lista de productos (scaffold)
 
-Muestra las tarjetas de cada repuesto agregado al carrito con nombre, imagen, precio unitario, cantidad y botón para eliminar el artículo. Cada tarjeta corresponde a un producto de la tabla `productos`.
+La rama `else` del condicional `$carrito_vacio` contiene el contenedor `.carrito-tarjeta-item` vacío, reservado para cuando se implemente la lógica completa de agregar y eliminar productos del carrito.
 
 ### Columna derecha — Resumen del pedido
 
@@ -118,10 +125,10 @@ El panel lateral muestra el resumen del pedido, el total calculado y el botón d
 La página muestra dos indicadores de seguridad y condiciones de envío para generar confianza en el usuario antes del checkout:
 
 <CardGroup cols={2}>
-  <Card title="Envío incluido" icon="truck-fast">
+  <Card title="Envío incluido" icon="truck-fast" href="/user/tienda">
     Un banner en la parte superior informa que el envío está disponible en todas las compras de repuestos y piezas seleccionadas.
   </Card>
-  <Card title="Pago seguro" icon="lock">
+  <Card title="Pago seguro" icon="lock" href="/user/carrito">
     El resumen lateral incluye una nota de seguridad: el usuario no será cobrado hasta revisar el pedido en la página siguiente. LUVEN declara proteger la información de pago del cliente.
   </Card>
 </CardGroup>
@@ -132,10 +139,10 @@ La página muestra dos indicadores de seguridad y condiciones de envío para gen
 
 <Steps>
   <Step title="Agregar productos desde la tienda">
-    El usuario navega a `Frontend/productos.php`, explora el catálogo y hace clic en **Ver** para ver el detalle del producto y agregarlo al carrito. Requiere sesión activa.
+    El usuario navega a `Frontend/productos.php`, explora el catálogo y hace clic en **Ver** para ver el detalle del producto. Requiere sesión activa para agregar al carrito.
   </Step>
   <Step title="Revisar el carrito">
-    En `Frontend/carito.php`, el usuario ve la lista de productos seleccionados, los precios unitarios y el total calculado en el resumen lateral.
+    En `Frontend/carito.php`, el usuario verá la lista de productos seleccionados y el total calculado en el resumen lateral.
   </Step>
   <Step title="Confirmar el pedido">
     Al hacer clic en el botón **"Hacer pedido"** (habilitado cuando hay al menos un producto), el usuario pasa a la página de confirmación y pago.
@@ -145,5 +152,5 @@ La página muestra dos indicadores de seguridad y condiciones de envío para gen
 ---
 
 <Note>
-  La implementación actual de `Frontend/carito.php` corresponde al scaffold de interfaz del carrito. La lógica completa de agregar y eliminar productos del carrito se conecta con el inventario de la tabla `productos` gestionado desde el panel de administración. El campo `activo = 1` garantiza que solo los productos publicados por el administrador sean visibles y comprables en la tienda.
+  La implementación actual de `Frontend/carito.php` corresponde al scaffold de interfaz del carrito: `$carrito_vacio = true` está codificado de forma fija y la lógica de agregar, eliminar y persistir productos del carrito no está implementada todavía. El campo `activo = 1` de la tabla `productos` garantiza que solo los productos publicados por el administrador sean visibles en la tienda.
 </Note>

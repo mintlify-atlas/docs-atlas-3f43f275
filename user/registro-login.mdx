@@ -1,7 +1,7 @@
 ---
-title: "Registro e inicio de sesión en LUVEN"
+title: "Registro e inicio de sesión de usuario en LUVEN Taller"
 sidebarTitle: "Registro y Login"
-description: "Cómo crear una cuenta de cliente y acceder a LUVEN Taller & Repuestos. Incluye validaciones del formulario y el flujo de sesión por rol."
+description: "Cómo crear una cuenta de cliente y acceder a LUVEN Taller & Repuestos. Incluye validaciones del formulario y el flujo de autenticación por rol."
 ---
 
 LUVEN Taller & Repuestos utiliza un sistema de autenticación basado en sesiones PHP. Cualquier persona puede registrarse de forma gratuita como cliente desde `Frontend/registro.php`. Una vez creada la cuenta, el acceso se realiza desde `Frontend/login.php`. El sistema distingue automáticamente entre usuarios con rol `cliente` y usuarios con rol `admin`, redirigiendo a cada uno a su panel correspondiente después del inicio de sesión.
@@ -12,7 +12,7 @@ LUVEN Taller & Repuestos utiliza un sistema de autenticación basado en sesiones
 
 El formulario de registro se encuentra en `Frontend/registro.php` y envía los datos por `POST` al controlador de autenticación:
 
-```
+```text
 POST ../adisionales/auth.php?accion=registrar
 ```
 
@@ -65,7 +65,7 @@ Las validaciones se ejecutan en `assets/js/validaciones.js` antes de que el form
 
 Si hay errores, el formulario despliega una alerta global en la parte superior:
 
-```
+```text
 ❌ Por favor, corrige los campos marcados en rojo antes de continuar.
 ```
 
@@ -75,7 +75,7 @@ Si hay errores, el formulario despliega una alerta global en la parte superior:
 
 El formulario de login está en `Frontend/login.php` y envía las credenciales por `POST`:
 
-```
+```text
 POST ../adisionales/auth.php?accion=login
 ```
 
@@ -90,7 +90,7 @@ POST ../adisionales/auth.php?accion=login
 </ParamField>
 
 <ParamField body="redirigir" type="string">
-  Campo oculto. Indica la página a la que debe regresarse tras el login (ej. `carrito`). Se propaga automáticamente desde la URL de origen mediante `$_GET['redirigir']`.
+  Campo oculto. Captura la página de origen desde `$_GET['redirigir']` y se propaga al formulario. El controlador `auth.php` no usa este valor para la redirección: tras un login exitoso, los clientes siempre van a `../index.html` y los administradores a `../ADMIN/admin.php`.
 </ParamField>
 
 ### Flujo de autenticación
@@ -135,7 +135,7 @@ POST ../adisionales/auth.php?accion=login
 
 Si el correo no existe en la base de datos o la contraseña no coincide, el controlador redirige de vuelta al formulario con un parámetro de error:
 
-```
+```text
 Location: ../Frontend/login.php?error=credenciales
 ```
 

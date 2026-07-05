@@ -1,7 +1,7 @@
 ---
-title: "Configurar la conexión y variables de LUVEN"
+title: "Configurar la conexión MySQL y rutas en LUVEN Taller"
 sidebarTitle: "Configuración"
-description: "Ajusta la conexión a MySQL, el puerto, credenciales y variables de entorno de LUVEN. Incluye configuración de Apache y solución a errores comunes."
+description: "Ajusta la conexión a MySQL, el puerto y credenciales de LUVEN. Incluye opciones PDO, rutas de subida de imágenes y solución a errores comunes."
 ---
 
 Toda la configuración de LUVEN Taller & Repuestos está centralizada en un único archivo: `adisionales/conexion.php`. No existe ningún archivo `.env` ni constantes dispersas en el proyecto: cualquier cambio de entorno (puerto, contraseña, nombre de base de datos) se realiza editando directamente ese archivo antes de la primera ejecución. Esta sección describe cada variable disponible, las opciones PDO activas y los pasos para garantizar que las subidas de imágenes funcionen correctamente.
