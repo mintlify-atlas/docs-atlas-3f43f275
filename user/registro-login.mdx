@@ -1,0 +1,174 @@
+---
+title: "Registro e inicio de sesión en LUVEN"
+sidebarTitle: "Registro y Login"
+description: "Cómo crear una cuenta de cliente y acceder a LUVEN Taller & Repuestos. Incluye validaciones del formulario y el flujo de sesión por rol."
+---
+
+LUVEN Taller & Repuestos utiliza un sistema de autenticación basado en sesiones PHP. Cualquier persona puede registrarse de forma gratuita como cliente desde `Frontend/registro.php`. Una vez creada la cuenta, el acceso se realiza desde `Frontend/login.php`. El sistema distingue automáticamente entre usuarios con rol `cliente` y usuarios con rol `admin`, redirigiendo a cada uno a su panel correspondiente después del inicio de sesión.
+
+---
+
+## Crear una cuenta de cliente
+
+El formulario de registro se encuentra en `Frontend/registro.php` y envía los datos por `POST` al controlador de autenticación:
+
+```
+POST ../adisionales/auth.php?accion=registrar
+```
+
+El controlador inserta el nuevo usuario en la tabla `usuarios` con el rol `cliente` fijo y la contraseña cifrada con `PASSWORD_BCRYPT`:
+
+```php adisionales/auth.php
+$password_encriptada = password_hash($password, PASSWORD_BCRYPT);
+
+$sql = "INSERT INTO usuarios (nombre, correo, telefono, password, rol)
+        VALUES (?, ?, ?, ?, 'cliente')";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$nombre, $correo, $telefono, $password_encriptada]);
+```
+
+Tras un registro exitoso, el usuario es redirigido a `Frontend/login.php?registro=exito`.
+
+### Campos del formulario de registro
+
+<ParamField body="nombre" type="string" required>
+  Nombre completo del usuario. Mínimo **4 caracteres**. Campo HTML: `reg-nombre`.
+</ParamField>
+
+<ParamField body="correo" type="string" required>
+  Correo electrónico. Debe cumplir el formato estándar `usuario@dominio.tld`. Campo HTML: `reg-correo`.
+</ParamField>
+
+<ParamField body="telefono" type="string" required>
+  Número de teléfono o celular peruano. Debe contener **exactamente 9 dígitos numéricos**. Campo HTML: `reg-telefono` con `maxlength="9"`.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Contraseña de acceso. Mínimo **8 caracteres**. Campo HTML: `reg-password`.
+</ParamField>
+
+<ParamField body="confirmar_password" type="string" required>
+  Repetición de la contraseña. Debe coincidir exactamente con el campo `password`. Campo HTML: `reg-confirmar`.
+</ParamField>
+
+### Reglas de validación del lado del cliente
+
+Las validaciones se ejecutan en `assets/js/validaciones.js` antes de que el formulario llegue al servidor. Si algún campo falla, se muestra el mensaje de error debajo del campo correspondiente y se bloquea el envío:
+
+| Campo | Regla |
+|---|---|
+| `nombre` | No vacío, mínimo 4 caracteres |
+| `correo` | Patrón `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` |
+| `telefono` | Solo dígitos, longitud exacta de 9 |
+| `password` | No vacío, mínimo 8 caracteres |
+| `confirmar_password` | Debe ser igual a `password` |
+
+Si hay errores, el formulario despliega una alerta global en la parte superior:
+
+```
+❌ Por favor, corrige los campos marcados en rojo antes de continuar.
+```
+
+---
+
+## Iniciar sesión
+
+El formulario de login está en `Frontend/login.php` y envía las credenciales por `POST`:
+
+```
+POST ../adisionales/auth.php?accion=login
+```
+
+### Campos del formulario de login
+
+<ParamField body="correo" type="string" required>
+  Correo electrónico con el que el usuario se registró. Campo HTML: `log-correo`.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Contraseña de la cuenta. Campo HTML: `log-password`.
+</ParamField>
+
+<ParamField body="redirigir" type="string">
+  Campo oculto. Indica la página a la que debe regresarse tras el login (ej. `carrito`). Se propaga automáticamente desde la URL de origen mediante `$_GET['redirigir']`.
+</ParamField>
+
+### Flujo de autenticación
+
+<Steps>
+  <Step title="Búsqueda del usuario">
+    El controlador consulta la tabla `usuarios` filtrando por `correo`:
+    ```php adisionales/auth.php
+    $sql = "SELECT * FROM usuarios WHERE correo = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$correo]);
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+    ```
+  </Step>
+  <Step title="Verificación de contraseña">
+    Se verifica la contraseña ingresada contra el hash almacenado:
+    ```php adisionales/auth.php
+    if ($usuario && password_verify($password, $usuario['password'])) {
+        // Credenciales correctas
+    }
+    ```
+  </Step>
+  <Step title="Creación de la sesión">
+    Si las credenciales son válidas, se guardan tres variables en la sesión PHP:
+    ```php adisionales/auth.php
+    $_SESSION['usuario_id'] = $usuario['id'];
+    $_SESSION['nombre']     = $usuario['nombre'];
+    $_SESSION['rol']        = $usuario['rol']; // 'admin' o 'cliente'
+    ```
+  </Step>
+  <Step title="Redirección por rol">
+    El sistema redirige según el valor de `$_SESSION['rol']`:
+
+    | Rol | Destino |
+    |---|---|
+    | `admin` | `../ADMIN/admin.php` |
+    | `cliente` | `../index.html` |
+  </Step>
+</Steps>
+
+### Manejo de errores de login
+
+Si el correo no existe en la base de datos o la contraseña no coincide, el controlador redirige de vuelta al formulario con un parámetro de error:
+
+```
+Location: ../Frontend/login.php?error=credenciales
+```
+
+El formulario de login también muestra una alerta especial cuando el usuario llega sin sesión desde una página protegida (como el carrito), a través del parámetro `?error=1`:
+
+```php Frontend/login.php
+<?php if (isset($_GET['error']) && $_GET['error'] == '1'): ?>
+    <div class="alerta-autenticacion">
+        Para continuar es necesario que se registre o inicie sesión.
+    </div>
+<?php endif; ?>
+```
+
+---
+
+## Variables de sesión activas
+
+Una vez autenticado, las siguientes variables están disponibles en toda la aplicación:
+
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `$_SESSION['usuario_id']` | ID del usuario en la tabla `usuarios` | `4` |
+| `$_SESSION['nombre']` | Nombre completo del usuario | `"Juan Pérez"` |
+| `$_SESSION['rol']` | Rol asignado al momento del registro | `"cliente"` o `"admin"` |
+
+---
+
+## Cerrar sesión
+
+El cierre de sesión se realiza visitando `Frontend/logout.php`, que destruye la sesión activa y redirige al inicio.
+
+---
+
+<Note>
+  Los usuarios que reservan una cita mediante el formulario en `Frontend/cita.php` también obtienen una cuenta de cliente de forma automática. El sistema crea el registro en la tabla `usuarios` con su nombre, correo, teléfono y contraseña ingresados en el formulario de la cita, asignando el rol `cliente`. Esto significa que no es necesario registrarse por separado antes de agendar la primera cita.
+</Note>

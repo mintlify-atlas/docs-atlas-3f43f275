@@ -1,47 +1,154 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Poner en marcha LUVEN en tu entorno local"
+sidebarTitle: "Inicio Rápido"
+description: "Levanta LUVEN Taller & Repuestos en tu máquina local con XAMPP en menos de 10 minutos. Incluye base de datos, configuración y primer acceso."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+Esta guía te llevará paso a paso desde la descarga del proyecto hasta tener la aplicación corriendo en tu navegador con una base de datos funcional y un usuario administrador listo para usar.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+
+  <Step title="Requisitos previos">
+    Antes de comenzar, asegúrate de tener instalado y en ejecución lo siguiente:
+
+    - **XAMPP** (recomendado) o **WAMP** con soporte para **PHP 7.4 o superior**
+    - **Apache** corriendo en el puerto **80**
+    - **MySQL** activo — LUVEN usa el puerto **3307** por defecto (algunos instaladores de XAMPP asignan el puerto 3306; verifica cuál utiliza el tuyo en el XAMPP Control Panel antes de continuar)
+
+    <Note>
+      Puedes confirmar el puerto de MySQL abriendo el **XAMPP Control Panel**, haciendo clic en el botón **Config** junto al servicio MySQL y revisando el archivo `my.ini`, o simplemente observando el número de puerto que aparece en la columna **Port** del panel una vez que el servicio está activo.
+    </Note>
+  </Step>
+
+  <Step title="Clonar / descargar el proyecto">
+    Clona el repositorio directamente dentro del directorio raíz de tu servidor local:
 
     ```bash
-    npm install your-package
+    git clone https://github.com/LVHJ-8/Proyecto_mecanica.git
     ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+    Coloca la carpeta resultante dentro de `htdocs/` si usas XAMPP, o dentro de `www/` si usas WAMP:
 
-    ```bash
-    your-cli start
+    - **XAMPP (Windows):** `C:/xampp/htdocs/Proyecto_mecanica/`
+    - **WAMP (Windows):** `C:/wamp64/www/Proyecto_mecanica/`
+
+    La estructura final dentro de `htdocs/` debe quedar así:
+
+    ```
+    htdocs/
+    └── Proyecto_mecanica/
+        ├── index.html
+        ├── Frontend/
+        ├── ADMIN/
+        ├── adisionales/
+        └── assets/
     ```
   </Step>
+
+  <Step title="Crear la base de datos">
+    LUVEN requiere una base de datos MySQL llamada `mecanica`. Sigue estos pasos para crearla:
+
+    1. Abre **phpMyAdmin** en tu navegador: [http://localhost/phpmyadmin](http://localhost/phpmyadmin)
+    2. Haz clic en **Nueva** (panel izquierdo) para crear una base de datos.
+    3. Ingresa el nombre `mecanica`, selecciona el cotejamiento **`utf8mb4_unicode_ci`** y pulsa **Crear**.
+
+    Una vez creada la base de datos, debes generar las tablas del sistema. Las tablas requeridas son:
+
+    `usuarios`, `productos`, `servicios`, `citas`, `horarios_atencion`, `categorias`, `marcas`, `modelos_vehiculos`, `trabajadores`, `cargos`
+
+    Puedes crear la tabla `usuarios` (la más crítica para la autenticación) ejecutando el siguiente SQL en la pestaña **SQL** de phpMyAdmin:
+
+    ```sql
+    CREATE TABLE usuarios (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      correo VARCHAR(150) NOT NULL UNIQUE,
+      telefono VARCHAR(20),
+      password VARCHAR(255) NOT NULL,
+      rol ENUM('admin','cliente') NOT NULL DEFAULT 'cliente',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    ```
+
+    Repite el proceso para las demás tablas según la estructura que necesite cada módulo del sistema (productos con campos `nombre`, `descripcion`, `precio`, `stock`, `imagen`, `activo`, `categoria_id`; servicios con `nombre` y `precio`; etc.).
+  </Step>
+
+  <Step title="Configurar la conexión a la base de datos">
+    Abre el archivo `adisionales/conexion.php` en tu editor de código. Este es el contenido actual del archivo:
+
+    ```php adisionales/conexion.php
+    <?php
+    $host     = 'localhost';
+    $port     = '3307'; // Cambia a 3306 si tu MySQL usa ese puerto
+    $db       = 'mecanica';
+    $user     = 'root';
+    $password = ''; // Agrega tu contraseña si configuraste una
+    $charset  = 'utf8mb4';
+
+    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    try {
+        $pdo = new PDO($dsn, $user, $password, $options);
+    } catch (\PDOException $e) {
+        die("Error crítico de conexión: " . $e->getMessage());
+    }
+    ```
+
+    Ajusta los valores según tu entorno local:
+
+    | Variable    | Valor por defecto | Cuándo cambiarlo                                      |
+    | ----------- | ----------------- | ----------------------------------------------------- |
+    | `$port`     | `3307`            | Cámbialo a `3306` si ese es el puerto de tu MySQL     |
+    | `$password` | `''` (vacío)      | Agrega tu contraseña si configuraste una en XAMPP     |
+    | `$user`     | `root`            | Cámbialo si usas otro usuario de MySQL                |
+  </Step>
+
+  <Step title="Crear el usuario administrador">
+    Para acceder al panel de administración necesitas al menos un usuario con rol `admin` en la base de datos. Dado que las contraseñas se almacenan con `password_hash(..., PASSWORD_BCRYPT)`, no puedes insertar texto plano directamente.
+
+    **Opción A — Generar el hash desde PHP:**
+
+    Crea un archivo temporal (por ejemplo `generar_hash.php`) en `htdocs/` con el siguiente contenido, ábrelo en el navegador y copia el hash generado:
+
+    ```php
+    <?php
+    echo password_hash('tu_contraseña_aqui', PASSWORD_BCRYPT);
+    ```
+
+    **Opción B — Insertar directamente con el hash ya generado:**
+
+    Una vez que tengas el hash, ejecútalo en la pestaña SQL de phpMyAdmin (reemplaza `$2y$10$...hash...` por el valor real que obtuviste):
+
+    ```sql
+    INSERT INTO usuarios (nombre, correo, telefono, password, rol)
+    VALUES ('Admin LUVEN', 'admin@luven.com', '900000000', '$2y$10$...hash...', 'admin');
+    ```
+
+    <Warning>
+      Elimina el archivo `generar_hash.php` de `htdocs/` después de usarlo. Dejarlo accesible públicamente es un riesgo de seguridad innecesario.
+    </Warning>
+  </Step>
+
+  <Step title="Abrir el proyecto en el navegador">
+    Con Apache y MySQL activos en XAMPP, abre tu navegador y accede a cualquiera de estas URLs:
+
+    | Vista                    | URL                                                         |
+    | ------------------------ | ----------------------------------------------------------- |
+    | Landing page pública     | `http://localhost/Proyecto_mecanica/`                       |
+    | Panel de administración  | `http://localhost/Proyecto_mecanica/ADMIN/admin.php`        |
+    | Inicio de sesión         | `http://localhost/Proyecto_mecanica/Frontend/login.php`     |
+    | Registro de cliente      | `http://localhost/Proyecto_mecanica/Frontend/registro.php`  |
+
+    Inicia sesión con las credenciales del administrador que creaste en el paso anterior. Si el rol es `admin`, serás redirigido automáticamente al panel de control en `ADMIN/admin.php`.
+
+    <Tip>
+      Si al abrir el proyecto aparece el mensaje **"Error crítico de conexión"**, lo más probable es que el puerto configurado en `adisionales/conexion.php` no coincida con el puerto real de MySQL en tu máquina. Abre el XAMPP Control Panel, observa el número de puerto que aparece junto al servicio MySQL (columna **Port**) y actualiza la variable `$port` en `conexion.php` con ese valor.
+    </Tip>
+  </Step>
+
 </Steps>
-
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
-
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>

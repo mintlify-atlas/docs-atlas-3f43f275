@@ -1,0 +1,53 @@
+---
+title: "Requisitos del sistema para instalar LUVEN"
+sidebarTitle: "Requisitos"
+description: "Lista de software y versiones mínimas necesarias para ejecutar LUVEN Taller & Repuestos en un servidor local o de producción."
+---
+
+LUVEN Taller & Repuestos es una aplicación web construida en PHP puro con MySQL como motor de base de datos. No depende de ningún gestor de paquetes (sin Composer, sin NPM) ni de frameworks externos, lo que significa que el único software necesario es un servidor web con soporte PHP, un servidor MySQL y un navegador moderno. Esta sencillez de dependencias hace que la instalación sea directa tanto en máquinas de desarrollo local como en servidores de producción con hosting compartido.
+
+## Software requerido
+
+| Software | Versión mínima | Notas |
+|---|---|---|
+| **PHP** | 7.4 | Requiere extensiones `pdo`, `pdo_mysql` y `mbstring` habilitadas |
+| **MySQL** | 5.7 | Compatible también con MariaDB 10.3 o superior |
+| **Apache** | 2.4 | Se recomienda tener `mod_rewrite` activo |
+| **Navegador web** | Cualquier moderno | Chrome 90+, Firefox 88+, Edge 90+ o equivalente |
+
+## Stack local recomendado
+
+Para desarrollo local en Windows, la forma más rápida de cumplir todos los requisitos anteriores es usar uno de los siguientes paquetes todo-en-uno:
+
+| Paquete | Versión recomendada | Incluye |
+|---|---|---|
+| **XAMPP** | 8.x | PHP 8.x · Apache 2.4 · MariaDB 10.x · phpMyAdmin |
+| **WAMP** | 3.x | PHP 8.x · Apache 2.4 · MySQL 8.x · phpMyAdmin |
+
+XAMPP es la opción preferida para este proyecto porque su configuración por defecto usa el **puerto 3307** para MySQL, que coincide exactamente con el valor preconfigurado en `adisionales/conexion.php`.
+
+## Dependencias de frontend
+
+LUVEN no requiere instalación local de ninguna librería de frontend. La única dependencia de presentación es Font Awesome 6, que se carga directamente desde CDN en cada página que la necesita:
+
+```html
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+```
+
+El resto del estilo está cubierto por hojas de estilo propias ubicadas en `assets/css/estilos.css` (frontend público) y `assets/css/estilos1.css` (panel de administración).
+
+## Funciones PHP utilizadas
+
+Las siguientes funciones nativas de PHP son usadas por la aplicación y deben estar disponibles en el servidor:
+
+- **`PDO` / `PDO::prepare`** — toda la interacción con la base de datos pasa por PDO con sentencias preparadas.
+- **`password_hash` / `password_verify`** — registro y verificación segura de contraseñas de usuarios.
+- **`session_start`** — gestión de sesiones para autenticación de clientes y administradores.
+- **`move_uploaded_file`** — subida de imágenes de productos, marcas y modelos de vehículos.
+
+Todas estas funciones están disponibles en cualquier instalación estándar de PHP 7.4 o superior sin configuración adicional.
+
+<Note>
+  El proyecto usa el puerto **3307** para conectarse a MySQL, que es la configuración por defecto de XAMPP. Si tu instalación de MySQL utiliza el puerto estándar **3306** (WAMP, MySQL nativo, servidor de producción), debes cambiar el valor de `$port` en `adisionales/conexion.php` antes de ejecutar la aplicación.
+</Note>

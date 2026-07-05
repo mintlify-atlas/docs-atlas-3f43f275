@@ -1,0 +1,149 @@
+---
+title: "Gestionar el carrito de compras de repuestos"
+sidebarTitle: "Carrito"
+description: "El carrito de LUVEN acumula repuestos seleccionados para su compra. Requiere sesión activa. Muestra el resumen del pedido con total y opción de checkout."
+---
+
+El carrito de LUVEN (`Frontend/carito.php`) es la página donde el usuario revisa todos los repuestos que ha seleccionado antes de completar su pedido. La página está protegida por sesión: detecta si el usuario ha iniciado sesión y ajusta la interfaz en consecuencia. El resumen lateral muestra el total acumulado y el botón de checkout, que permanece deshabilitado mientras el carrito esté vacío.
+
+---
+
+## URL de acceso
+
+```
+Frontend/carito.php
+```
+
+---
+
+## Requisito de sesión
+
+El carrito verifica la existencia de la sesión PHP al cargar:
+
+```php Frontend/carito.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+```
+
+La variable `$_SESSION['usuario_id']` es la que determina si se muestra el estado autenticado o el estado vacío con botones de acceso.
+
+### Acceso sin sesión desde el icono del carrito
+
+Si un usuario no autenticado hace clic en el icono del carrito desde cualquier página de la tienda o de servicios, es redirigido al login con un mensaje de alerta y el parámetro de retorno:
+
+```
+Frontend/login.php?redirigir=carrito&error=1
+```
+
+Esto activa la alerta informativa en el formulario de login: `"Para continuar es necesario que se registre o inicie sesión."`. Una vez autenticado, el parámetro `redirigir=carrito` permite que el sistema devuelva al usuario al carrito automáticamente.
+
+---
+
+## Estado vacío del carrito
+
+Cuando `$carrito_vacio` es `true` (o el usuario no tiene productos agregados), se muestra una pantalla de estado vacío centrada con icono, mensaje y dos botones de acción:
+
+```php Frontend/carito.php
+<?php if ($carrito_vacio): ?>
+    <div class="carrito-estado-vacio">
+        <div class="icon-wrap">
+            <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+        <h3>El carrito de compras está vacío</h3>
+        <p>Agrega tus repuestos o artículos favoritos.</p>
+
+        <div class="carrito-vacio-botones">
+            <a href="login.php?redirigir=carrito&error=1" class="btn-temu-naranja">
+                Iniciar sesión / Registrarse
+            </a>
+            <a href="../modulos/tienda/productos.php" class="btn-temu-blanco">
+                Comienza a comprar
+            </a>
+        </div>
+    </div>
+<?php endif; ?>
+```
+
+| Botón | Destino | Estilo |
+|---|---|---|
+| **Iniciar sesión / Registrarse** | `login.php?redirigir=carrito&error=1` | Naranja (primario) |
+| **Comienza a comprar** | `../modulos/tienda/productos.php` | Blanco (secundario) |
+
+---
+
+## Layout de dos columnas
+
+Cuando el carrito tiene productos, la página utiliza un layout de dos columnas:
+
+### Columna izquierda — Lista de productos
+
+Muestra las tarjetas de cada repuesto agregado al carrito con nombre, imagen, precio unitario, cantidad y botón para eliminar el artículo. Cada tarjeta corresponde a un producto de la tabla `productos`.
+
+### Columna derecha — Resumen del pedido
+
+El panel lateral muestra el resumen del pedido, el total calculado y el botón de confirmación:
+
+```php Frontend/carito.php
+<div class="carrito-resumen-card">
+    <h3>Resumen del pedido</h3>
+
+    <div class="resumen-fila-total">
+        <span>Total</span>
+        <strong>S/ 0.00</strong>
+    </div>
+
+    <p class="resumen-nota">Consulta el monto final de tu pago real.</p>
+
+    <button class="btn-temu-orden" disabled>Hacer pedido (0)</button>
+
+    <div class="carrito-confianza-lista">
+        <div class="confianza-item">
+            <i class="fa-solid fa-lock text-verde"></i>
+            <span>No se te cobrará hasta que revises este pedido en la página siguiente.</span>
+        </div>
+        <div class="confianza-item">
+            <i class="fa-solid fa-shield-halved text-verde"></i>
+            <span><strong>Opciones de pago seguro:</strong>
+                LUVEN se compromete a proteger tu información de pago.</span>
+        </div>
+    </div>
+</div>
+```
+
+---
+
+## Elementos de confianza
+
+La página muestra dos indicadores de seguridad y condiciones de envío para generar confianza en el usuario antes del checkout:
+
+<CardGroup cols={2}>
+  <Card title="Envío incluido" icon="truck-fast">
+    Un banner en la parte superior informa que el envío está disponible en todas las compras de repuestos y piezas seleccionadas.
+  </Card>
+  <Card title="Pago seguro" icon="lock">
+    El resumen lateral incluye una nota de seguridad: el usuario no será cobrado hasta revisar el pedido en la página siguiente. LUVEN declara proteger la información de pago del cliente.
+  </Card>
+</CardGroup>
+
+---
+
+## Flujo de compra
+
+<Steps>
+  <Step title="Agregar productos desde la tienda">
+    El usuario navega a `Frontend/productos.php`, explora el catálogo y hace clic en **Ver** para ver el detalle del producto y agregarlo al carrito. Requiere sesión activa.
+  </Step>
+  <Step title="Revisar el carrito">
+    En `Frontend/carito.php`, el usuario ve la lista de productos seleccionados, los precios unitarios y el total calculado en el resumen lateral.
+  </Step>
+  <Step title="Confirmar el pedido">
+    Al hacer clic en el botón **"Hacer pedido"** (habilitado cuando hay al menos un producto), el usuario pasa a la página de confirmación y pago.
+  </Step>
+</Steps>
+
+---
+
+<Note>
+  La implementación actual de `Frontend/carito.php` corresponde al scaffold de interfaz del carrito. La lógica completa de agregar y eliminar productos del carrito se conecta con el inventario de la tabla `productos` gestionado desde el panel de administración. El campo `activo = 1` garantiza que solo los productos publicados por el administrador sean visibles y comprables en la tienda.
+</Note>

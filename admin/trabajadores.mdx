@@ -1,0 +1,137 @@
+---
+title: "Administrar el personal del taller mecánico en LUVEN"
+sidebarTitle: "Trabajadores"
+description: "Registra mecánicos y personal del taller en LUVEN. Gestiona cargos y especialidades desde el mismo panel. Los cargos agrupan al personal por rol técnico."
+---
+
+El módulo de trabajadores permite registrar y administrar todo el personal del taller: mecánicos, electricistas, técnicos especializados y personal de servicio al cliente. Cada trabajador queda vinculado a un cargo que define su rol técnico dentro de la organización. Los cargos se gestionan desde el mismo panel a través de un modal, lo que evita tener que navegar a una sección separada. Este módulo es el punto de partida para organizar al equipo antes de asignar responsabilidades o turnos de atención.
+
+## Acceso y protección
+
+La página se encuentra en `ADMIN/trabajadores/CRUDTrabajadores.php`. El acceso está restringido por sesión: cualquier usuario cuyo `$_SESSION['rol']` sea distinto de `admin` es redirigido antes de que se renderice cualquier contenido.
+
+## Interfaz principal
+
+La página se organiza en dos pestañas y un modal de gestión:
+
+- **Lista de Trabajadores** — tabla con todos los registros actuales.
+- **Nuevo Trabajador** — formulario de alta de personal.
+- **Gestionar Cargos** — botón en la esquina superior derecha de las pestañas que abre un modal sin recargar la página.
+
+## Lista de trabajadores
+
+La tabla muestra el personal registrado en orden descendente por ID, junto con su cargo resuelto mediante un `LEFT JOIN` con la tabla `cargos`.
+
+```sql
+SELECT t.*, c.nombre_cargo
+FROM trabajadores t
+LEFT JOIN cargos c ON t.cargo_id = c.id
+ORDER BY t.id DESC;
+```
+
+| Columna | Fuente | Descripción |
+|---|---|---|
+| **ID** | `trabajadores.id` | Identificador único autoincremental |
+| **DNI** | `trabajadores.dni` | Documento de identidad (máx. 15 caracteres) |
+| **Nombre Completo** | `nombre` + `apellido` | Nombre y apellido concatenados |
+| **Cargo / Especialidad** | `cargos.nombre_cargo` | Rol técnico asignado |
+| **Teléfono** | `trabajadores.telefono` | Número de contacto directo |
+| **Acciones** | — | Botones para editar o eliminar |
+
+### Acciones disponibles
+
+- **Editar** → redirige a `editar_trabajador.php?id=X` para modificar los datos del trabajador.
+- **Eliminar** → redirige a `eliminar_trabajador.php?id=X` con confirmación en JavaScript antes de ejecutar la eliminación permanente.
+
+## Registrar un nuevo trabajador
+
+El formulario de alta usa `POST` con `action = 'guardar_trabajador'`. Todos los campos son obligatorios. El campo `activo` se establece en `1` automáticamente al crear el registro.
+
+<ParamField body="nombre" type="string" required>
+  Nombre de pila del trabajador.
+</ParamField>
+
+<ParamField body="apellido" type="string" required>
+  Apellido del trabajador.
+</ParamField>
+
+<ParamField body="dni" type="string" required>
+  Documento de identidad. Acepta hasta 15 caracteres para admitir distintos formatos nacionales.
+</ParamField>
+
+<ParamField body="telefono" type="string" required>
+  Número de teléfono de contacto directo del trabajador.
+</ParamField>
+
+<ParamField body="cargo_id" type="integer" required>
+  Clave foránea hacia la tabla `cargos`. Se presenta como un selector desplegable poblado con los cargos existentes. Debe existir al menos un cargo antes de poder registrar trabajadores.
+</ParamField>
+
+<Note>
+  El campo `activo` en la tabla `trabajadores` se fija en `1` al crear cualquier registro. Para desactivar temporalmente a un trabajador sin eliminar su historial, puedes actualizar ese valor a `0` directamente en la base de datos. El registro se conserva pero puede filtrarse en consultas que solo traigan personal activo.
+</Note>
+
+## Gestionar cargos
+
+Los cargos (o especialidades) definen el rol técnico de cada trabajador. Se administran desde el modal **Gestionar Cargos**, que se abre en la misma página sin recarga. Los cargos disponibles aparecen también en el selector del formulario de nuevo trabajador.
+
+Ejemplos de cargos típicos en un taller mecánico:
+
+- `Mecánico General`
+- `Electricista Automotriz`
+- `Técnico de Frenos`
+- `Asesor de Servicio`
+
+### Crear un cargo
+
+El formulario usa `POST` con `action = 'guardar_cargo'` e inserta el registro en la tabla `cargos`:
+
+<ParamField body="nombre_cargo" type="string" required>
+  Nombre del cargo o especialidad, por ejemplo `Mecánico General` o `Electricista Automotriz`.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Descripción opcional del cargo: responsabilidades, alcance técnico o cualquier observación relevante.
+</ParamField>
+
+```sql
+-- Create a new cargo
+INSERT INTO cargos (nombre_cargo, descripcion) VALUES (?, ?);
+```
+
+### Eliminar un cargo
+
+El formulario de eliminación usa `POST` con `action = 'eliminar_cargo'` e intenta borrar el registro por ID:
+
+```sql
+-- Delete cargo (fails if workers assigned)
+DELETE FROM cargos WHERE id = ?;
+```
+
+<Warning>
+  Intentar eliminar un cargo que todavía tiene trabajadores asignados producirá un error de clave foránea en la base de datos. Antes de eliminar un cargo, reasigna a los trabajadores que lo tengan asignado a otro cargo, o bien elimina sus registros si ya no forman parte del equipo.
+</Warning>
+
+## Estructura de tablas
+
+La relación entre trabajadores y cargos se resuelve con una clave foránea directa:
+
+**`cargos`**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | int, PK | Identificador del cargo |
+| `nombre_cargo` | varchar | Nombre del cargo o especialidad |
+| `descripcion` | varchar | Descripción del cargo |
+
+**`trabajadores`**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | int, PK | Identificador del trabajador |
+| `cargo_id` | int, FK → `cargos.id` | Cargo asignado |
+| `nombre` | varchar | Nombre de pila |
+| `apellido` | varchar | Apellido |
+| `dni` | varchar(15) | Documento de identidad |
+| `telefono` | varchar | Teléfono de contacto |
+| `activo` | tinyint | `1` activo, `0` inactivo |

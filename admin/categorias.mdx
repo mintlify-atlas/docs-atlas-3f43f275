@@ -1,0 +1,93 @@
+---
+title: "Administrar categorías de productos en LUVEN"
+sidebarTitle: "Categorías"
+description: "Crea y organiza las categorías que agrupan los repuestos en la tienda de LUVEN. Las categorías alimentan el sidebar de filtros y el selector de búsqueda de la tienda."
+---
+
+Las categorías son la estructura de organización del catálogo de repuestos de LUVEN Taller & Repuestos. Cada producto debe pertenecer a una categoría, y esa asignación determina cómo los clientes encuentran los repuestos en la tienda: a través del sidebar de navegación lateral y del selector de búsqueda en la barra superior. Mantener una taxonomía clara desde el inicio facilita tanto la gestión interna como la experiencia de compra del cliente.
+
+## Acceso
+
+Navega a `ADMIN/categoria/CRUDCategorias.php` desde el panel de administración. La página presenta dos pestañas:
+
+| Pestaña | Descripción |
+|---|---|
+| **Lista de Categorías** | Tabla con todas las categorías registradas, ordenadas por ID descendente |
+| **Nueva Categoría** | Formulario para crear un nuevo registro de categoría |
+
+---
+
+## Tabla de categorías
+
+La lista se obtiene con la siguiente consulta:
+
+```sql
+SELECT * FROM categorias ORDER BY id DESC
+```
+
+Las categorías más recientes aparecen primero. Las columnas de la tabla son:
+
+| Columna | Descripción |
+|---|---|
+| **ID** | Identificador único autoincremental de la categoría |
+| **Nombre** | Nombre de la categoría tal como aparece en la tienda |
+| **Descripción** | Texto descriptivo opcional de la categoría |
+| **Acciones** | Botones para **editar** o **eliminar** el registro |
+
+---
+
+## Crear una nueva categoría
+
+Haz clic en la pestaña **Nueva Categoría** para desplegar el formulario. Los datos se envían por `POST` a `procesar_categoria.php`.
+
+<ParamField body="nombre" type="string" required>
+  Nombre de la categoría. Este texto aparece directamente en el sidebar de filtros de `Frontend/productos.php` y en el selector desplegable de la barra de búsqueda. Usa nombres claros y concisos. Ejemplos: `Filtros`, `Frenos`, `Suspensión`, `Iluminación`.
+</ParamField>
+
+<ParamField body="descripcion" type="text">
+  Descripción opcional de la categoría. Puede usarse para dar contexto interno sobre qué tipos de productos agrupa, o mostrarse en una futura página de aterrizaje por categoría.
+</ParamField>
+
+---
+
+## Cómo aparecen las categorías en la tienda
+
+Una vez creada, una categoría queda disponible de inmediato en dos puntos de la tienda pública:
+
+**Sidebar de filtros laterales** — `Frontend/productos.php` genera dinámicamente un enlace por cada categoría registrada. Al hacer clic, filtra el catálogo usando el parámetro `categoria_id` en la URL:
+
+```
+productos.php?categoria_id=X
+```
+
+**Selector de búsqueda superior** — La barra de búsqueda de la tienda incluye un desplegable de categorías para que el cliente acote su búsqueda por tipo de repuesto antes de buscar por nombre.
+
+---
+
+## Editar una categoría
+
+Haz clic en el botón **Editar** en la fila correspondiente. La acción apunta a:
+
+```
+editar_categoria.php?id=X
+```
+
+donde `X` es el `id` de la categoría. El formulario se precarga con los valores actuales del registro.
+
+---
+
+## Eliminar una categoría
+
+Haz clic en el botón **Eliminar** en la fila de la categoría. La solicitud se envía a:
+
+```
+eliminar_categoria.php?id=X
+```
+
+Antes de eliminar una categoría, verifica que no tenga productos asignados. Si la eliminas mientras existen productos con ese `categoria_id`, esos productos quedarán sin categoría y podrían no aparecer correctamente en los filtros de la tienda.
+
+---
+
+<Tip>
+  Planifica la estructura de categorías antes de comenzar a agregar productos. Cambiar el `id` de una categoría después de haber asignado productos requiere actualizar la columna `categoria_id` en cada producto asociado. Es preferible definir categorías estables desde el inicio y reservar la edición solo para ajustes de nombre o descripción.
+</Tip>

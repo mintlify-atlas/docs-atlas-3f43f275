@@ -1,0 +1,99 @@
+{
+  "projectType": "saas",
+  "projectName": "LUVEN Taller & Repuestos",
+  "projectDescription": "A PHP-based automotive workshop and auto parts management web application that allows customers to browse services, purchase spare parts, and schedule appointments, while providing administrators with a full back-office dashboard to manage products, services, appointments, staff, brands, and vehicle models.",
+  "theme": "almond",
+  "primaryColor": "#d6001c",
+  "lightColor": "#ffffff",
+  "darkColor": "#0f1a3a",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guía de Usuario",
+        "groups": [
+          {
+            "group": "Introducción",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Funcionalidades del Cliente",
+            "pages": [
+              "user/registro-login",
+              "user/servicios",
+              "user/tienda",
+              "user/agendar-cita",
+              "user/carrito"
+            ]
+          },
+          {
+            "group": "Instalación y Configuración",
+            "pages": [
+              "setup/requisitos",
+              "setup/instalacion",
+              "setup/base-de-datos",
+              "setup/configuracion"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Panel de Administración",
+        "groups": [
+          {
+            "group": "Primeros Pasos",
+            "pages": [
+              "admin/overview",
+              "admin/acceso"
+            ]
+          },
+          {
+            "group": "Gestión del Catálogo",
+            "pages": [
+              "admin/productos",
+              "admin/servicios",
+              "admin/categorias",
+              "admin/marcas-modelos"
+            ]
+          },
+          {
+            "group": "Operaciones",
+            "pages": [
+              "admin/citas",
+              "admin/trabajadores"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Online appointment scheduling with real-time time-slot availability check",
+    "Product store with category and vehicle brand/model filtering",
+    "Shopping cart for spare parts and accessories",
+    "Role-based authentication (admin vs. cliente) with PHP sessions",
+    "Admin dashboard with low-stock alerts and upcoming appointments summary",
+    "Full CRUD management for products, services, categories, brands, vehicle models, and staff",
+    "WhatsApp direct contact integration",
+    "PDO-based MySQL data layer with prepared statements"
+  ],
+  "publicApiSurface": [
+    "GET /Frontend/servisios.php — public services catalog",
+    "GET /Frontend/productos.php?buscar=&categoria_id=&marca= — product store with filters",
+    "GET /Frontend/cita.php — appointment booking form",
+    "POST /adisionales/auth.php?accion=registrar — user registration",
+    "POST /adisionales/auth.php?accion=login — user login with role-based redirect",
+    "GET /Frontend/verificar_disponibilidad.php?fecha=YYYY-MM-DD — returns JSON of booked time slots",
+    "GET /Frontend/marca_detalle.php?slug=&modelo= — brand/model-filtered parts page",
+    "GET /ADMIN/admin.php — admin dashboard (requires admin session)",
+    "GET /ADMIN/productos/CRUDProductos.php — product management (requires admin session)",
+    "GET /ADMIN/servisios/CRUDServicios.php — service management (requires admin session)",
+    "GET /ADMIN/citas/CRUDCitas.php — appointments management (requires admin session)",
+    "GET /ADMIN/categoria/CRUDCategorias.php — category management (requires admin session)",
+    "GET /ADMIN/marcas/CRUDMarcas.php — brand management (requires admin session)",
+    "GET /ADMIN/modelos_De_veiculos/CRUDModelos.php — vehicle model management (requires admin session)",
+    "GET /ADMIN/trabajadores/CRUDTrabajadores.php — staff management (requires admin session)"
+  ]
+}

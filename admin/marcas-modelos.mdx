@@ -1,0 +1,144 @@
+---
+title: "Gestionar marcas y modelos de vehículos en LUVEN"
+sidebarTitle: "Marcas y Modelos"
+description: "Agrega marcas de vehículos con slug e imagen, y asocia modelos a cada marca. Las marcas habilitan el filtrado de repuestos por fabricante en la tienda pública."
+---
+
+Las marcas y modelos de vehículos forman el sistema de filtrado por compatibilidad de LUVEN Taller & Repuestos. Al registrar una marca con su slug único e imagen, habilitas su aparición como círculo clicable en la tienda. Al asociar modelos a esa marca, los clientes pueden navegar directamente a los repuestos compatibles con su vehículo específico. Ambos módulos trabajan en conjunto: primero crea la marca, luego agrega sus modelos.
+
+---
+
+## Marcas de vehículos
+
+### Acceso
+
+Navega a `ADMIN/marcas/CRUDMarcas.php` desde el panel de administración.
+
+### Tabla de marcas
+
+La lista se obtiene con la siguiente consulta:
+
+```sql
+SELECT * FROM marcas ORDER BY id DESC
+```
+
+| Columna | Descripción |
+|---|---|
+| **Logo** | Miniatura de la imagen de la marca subida al servidor |
+| **Nombre** | Nombre comercial de la marca (ej. Toyota, Honda) |
+| **Slug** | Identificador en URL, en minúsculas sin espacios (ej. `toyota`) |
+| **Acciones** | Botones para **editar** o **eliminar** el registro |
+
+### Crear una nueva marca
+
+El formulario envía los datos por `POST` a `procesar_marca.php` con codificación `multipart/form-data` para admitir la subida del logotipo.
+
+<ParamField body="nombre" type="string" required>
+  Nombre comercial de la marca del vehículo tal como aparecerá en la tienda. Ejemplo: `Toyota`. Se muestra debajo del logotipo en las tarjetas de marcas de `Frontend/productos.php` y como encabezado en `Frontend/marca_detalle.php`.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  Identificador único de la marca en formato URL: solo minúsculas, sin espacios ni caracteres especiales. Ejemplo: `toyota`. Este valor se usa directamente en los parámetros de filtrado de la tienda:
+  ```
+  productos.php?marca=toyota
+  ```
+  y en la URL de la página de detalle de la marca:
+  ```
+  marca_detalle.php?slug=toyota
+  ```
+  Una vez asignado y utilizado en URLs, evita modificar el slug para no romper enlaces existentes.
+</ParamField>
+
+<ParamField body="imagen" type="file" required>
+  Logotipo de la marca en formato PNG o JPG. El archivo se sube al directorio `assets/img/marcas/` en el servidor. La imagen se muestra en el círculo de marca dentro de `Frontend/productos.php` y en la cabecera de `Frontend/marca_detalle.php`. Recomendación: usa imágenes cuadradas de fondo transparente para un resultado uniforme.
+</ParamField>
+
+### Cómo aparecen las marcas en la tienda
+
+- **Página de productos** — `Frontend/productos.php` muestra una fila de círculos clicables, uno por cada marca registrada. Al hacer clic en un círculo, se filtra el catálogo por esa marca usando el slug en la URL: `productos.php?marca=toyota`.
+- **Página de detalle de marca** — `Frontend/marca_detalle.php?slug=toyota` muestra el logotipo, el nombre de la marca y una galería de los modelos de vehículos asociados a ella.
+
+---
+
+## Modelos de vehículos
+
+### Acceso
+
+Navega a `ADMIN/modelos_De_veiculos/CRUDModelos.php` desde el panel de administración.
+
+### Tabla de modelos
+
+La lista se construye uniendo la tabla `modelos_vehiculos` con `marcas` para mostrar el nombre de la marca en lugar del ID:
+
+```sql
+SELECT m.id, m.nombre_modelo, m.imagen_modelo, ma.nombre AS marca
+FROM modelos_vehiculos m
+JOIN marcas ma ON m.marca_id = ma.id
+ORDER BY m.id DESC
+```
+
+| Columna | Descripción |
+|---|---|
+| **Imagen** | Miniatura de la imagen del modelo de vehículo |
+| **Modelo** | Nombre del modelo (ej. Corolla 2022) |
+| **Marca** | Nombre de la marca a la que pertenece el modelo (joined desde `marcas`) |
+| **Acciones** | Botones para **editar** o **eliminar** el registro |
+
+### Crear un nuevo modelo
+
+El formulario envía los datos por `POST` a `procesar_modelo.php` con codificación `multipart/form-data`.
+
+<ParamField body="nombre_modelo" type="string" required>
+  Nombre completo del modelo de vehículo, incluyendo el año si aplica. Ejemplo: `Corolla 2022`, `Yaris 2021`, `Hilux 2019`. Este nombre aparece en las tarjetas de modelos dentro de la página de detalle de la marca y se usa como valor del filtro de compatibilidad de productos.
+</ParamField>
+
+<ParamField body="marca_id" type="integer" required>
+  ID de la marca a la que pertenece el modelo. El selector se puebla dinámicamente desde la tabla `marcas`. Debes crear la marca antes de poder asociarle modelos. La relación determina en qué página de detalle de marca aparecerá el modelo.
+</ParamField>
+
+<ParamField body="imagen_modelo" type="file" required>
+  Fotografía o imagen representativa del modelo de vehículo en formato PNG o JPG. El archivo se sube al directorio `assets/img/modelos/` en el servidor. La imagen aparece en la tarjeta del modelo dentro de `Frontend/marca_detalle.php`. Recomendación: usa imágenes de perfil lateral del vehículo con fondo uniforme para consistencia visual.
+</ParamField>
+
+### Cómo aparecen los modelos en la tienda
+
+Los modelos de una marca se muestran como tarjetas clicables en `Frontend/marca_detalle.php?slug=toyota`. Cada tarjeta contiene la imagen y el nombre del modelo.
+
+Al hacer clic en la tarjeta de un modelo, la página filtra los productos compatibles usando el nombre del modelo como parámetro:
+
+```
+marca_detalle.php?slug=toyota&modelo=Corolla
+```
+
+Este filtro busca en la tabla `productos` los registros donde `modelo_vehiculo = 'Corolla'`, mostrando solo los repuestos asignados a ese modelo específico.
+
+---
+
+## Flujo de trabajo recomendado
+
+Sigue este orden al configurar marcas, modelos y productos para garantizar que los filtros de la tienda funcionen correctamente:
+
+**Paso 1 — Crear la marca**
+
+Registra la marca en `ADMIN/marcas/CRUDMarcas.php`. Define el slug en minúsculas sin espacios y sube el logotipo.
+
+```
+Nombre: Toyota  |  Slug: toyota  |  Imagen: toyota-logo.png
+```
+
+**Paso 2 — Crear los modelos asociados**
+
+En `ADMIN/modelos_De_veiculos/CRUDModelos.php`, crea cada modelo seleccionando la marca recién creada como `marca_id`.
+
+```
+nombre_modelo: Corolla 2020  →  marca_id: (id de Toyota)
+nombre_modelo: Yaris 2021    →  marca_id: (id de Toyota)
+```
+
+**Paso 3 — Asignar marca y modelo al crear productos**
+
+Al registrar un repuesto en `ADMIN/productos/CRUDProductos.php`, establece `marca_id` con el ID de Toyota y completa el campo `modelo_vehiculo` con el nombre exacto del modelo (ej. `Corolla`) para que el filtro por modelo funcione correctamente en la tienda.
+
+<Tip>
+  El campo `modelo_vehiculo` en la tabla `productos` debe coincidir exactamente (incluyendo mayúsculas y espacios) con el `nombre_modelo` registrado en `modelos_vehiculos`. Una inconsistencia entre ambos valores hará que el filtro `marca_detalle.php?slug=toyota&modelo=Corolla` no retorne los productos esperados.
+</Tip>

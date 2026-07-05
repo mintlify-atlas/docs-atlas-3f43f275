@@ -1,0 +1,184 @@
+---
+title: "Comprar repuestos en la tienda en línea de LUVEN"
+sidebarTitle: "Tienda"
+description: "Busca y filtra repuestos automotrices por categoría, marca o modelo de vehículo. Explora el catálogo de productos activos con stock en tiempo real."
+---
+
+La tienda de LUVEN (`Frontend/productos.php`) centraliza todo el inventario de repuestos y accesorios automotrices disponibles para su compra. El catálogo está construido sobre consultas dinámicas a la base de datos, lo que significa que los productos mostrados siempre reflejan el stock y los precios actuales gestionados desde el panel de administración. Los visitantes pueden explorar el catálogo libremente, pero deben iniciar sesión para agregar artículos al carrito.
+
+---
+
+## URL de acceso
+
+```
+Frontend/productos.php
+```
+
+---
+
+## Parámetros de filtrado
+
+La tienda acepta tres parámetros GET que pueden combinarse libremente para refinar los resultados:
+
+<ParamField query="buscar" type="string">
+  Texto libre que se busca en el `nombre` y la `descripcion` de los productos usando `LIKE`. Ejemplo: `?buscar=aceite`.
+</ParamField>
+
+<ParamField query="categoria_id" type="integer">
+  ID numérico de la categoría a filtrar, proveniente de la tabla `categorias`. Ejemplo: `?categoria_id=3`.
+</ParamField>
+
+<ParamField query="marca" type="string">
+  Slug de la marca de vehículo (ej. `toyota`, `honda`). Filtra los productos cuyo `nombre` o `descripcion` contienen la cadena del slug. Ejemplo: `?marca=toyota`.
+</ParamField>
+
+### Ejemplos de URL
+
+| Caso | URL |
+|---|---|
+| Ver todos los productos | `Frontend/productos.php` |
+| Por categoría | `Frontend/productos.php?categoria_id=3` |
+| Por marca | `Frontend/productos.php?marca=toyota` |
+| Búsqueda de texto | `Frontend/productos.php?buscar=aceite` |
+| Búsqueda + categoría | `Frontend/productos.php?buscar=aceite&categoria_id=2` |
+| Marca + categoría | `Frontend/productos.php?marca=toyota&categoria_id=3` |
+
+---
+
+## Consulta SQL de productos
+
+El controlador construye la consulta dinámicamente según los filtros activos. Solo se devuelven productos con `activo = 1`. Los resultados se ordenan por stock ascendente (los de menor stock aparecen primero) y por ID descendente como criterio secundario:
+
+```sql
+SELECT * FROM productos
+WHERE activo = 1
+  AND (nombre LIKE :buscar OR descripcion LIKE :buscar)
+  AND categoria_id = :cat_id
+ORDER BY stock ASC, id DESC
+```
+
+```php Frontend/productos.php
+$sql = "SELECT * FROM productos WHERE activo = 1";
+$params = [];
+
+if (!empty($buscar)) {
+    $sql .= " AND (nombre LIKE :buscar OR descripcion LIKE :buscar)";
+    $params[':buscar'] = '%' . $buscar . '%';
+}
+if (!empty($cat_id)) {
+    $sql .= " AND categoria_id = :cat_id";
+    $params[':cat_id'] = $cat_id;
+}
+if (!empty($marcaFiltrada)) {
+    $sql .= " AND (nombre LIKE :marca OR descripcion LIKE :marca)";
+    $params[':marca'] = '%' . $marcaFiltrada . '%';
+}
+
+$sql .= " ORDER BY stock ASC, id DESC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+```
+
+---
+
+## Estructura visual de la tienda
+
+La página tiene tres secciones de navegación de productos:
+
+### 1. Buscador superior
+
+Un campo de búsqueda de texto libre con un selector de categoría integrado. Al enviarse, recarga la página con los parámetros `buscar` y/o `categoria_id` en la URL.
+
+### 2. Círculos de marcas de vehículo
+
+Debajo del buscador, se muestra una fila de círculos con el logo de cada marca registrada en la tabla `marcas`. Al hacer clic en un círculo, la URL cambia a:
+
+```
+Frontend/productos.php?marca={slug_de_la_marca}
+```
+
+La marca activa se resalta visualmente con la clase CSS `marca-activa`.
+
+<Tip>
+  Usa los círculos de marcas en la parte superior de la tienda para filtrar el catálogo por fabricante de vehículo (Toyota, Honda, Nissan, etc.) con un solo clic. Puedes combinarlos con el selector de categoría del buscador para encontrar, por ejemplo, filtros de aceite solo para Toyota.
+</Tip>
+
+### 3. Barra lateral de categorías + cuadrícula de productos
+
+El layout de dos columnas muestra:
+- **Columna izquierda:** listado de categorías como enlaces rápidos. Al hacer clic en una categoría, se agrega `?categoria_id=X` a la URL sin perder otros filtros activos.
+- **Columna derecha:** cuadrícula con las tarjetas de productos filtrados.
+
+---
+
+## Tarjeta de producto
+
+Cada producto en la cuadrícula muestra:
+
+| Campo | Descripción |
+|---|---|
+| Imagen | Cargada desde `assets/img/productos/{imagen}` |
+| Nombre | Campo `nombre` de la tabla `productos` |
+| Descripción | Campo `descripcion` (fallback: `"Sin especificaciones técnicas adicionales."`) |
+| Precio | Formato `S/. X.XX` con `number_format($precio, 2)` |
+| Badge de stock | `"¡Pocas Unidades!"` cuando `stock <= 3 AND stock > 0` |
+| Botón de detalle | Enlace a `detalle_producto.php?id={id}` |
+
+### Badge de stock bajo
+
+El badge de alerta aparece superpuesto sobre la imagen del producto cuando las unidades disponibles son tres o menos:
+
+```php Frontend/productos.php
+<?php if ($prod['stock'] <= 3 && $prod['stock'] > 0): ?>
+    <span class="badge-stock">¡Pocas Unidades!</span>
+<?php endif; ?>
+```
+
+---
+
+## Página de detalle por marca de vehículo
+
+Al hacer clic en un círculo de marca, se navega a `Frontend/marca_detalle.php`. Esta página muestra primero los modelos de vehículo asociados a la marca y luego los repuestos disponibles para esa marca.
+
+**URL base por marca:**
+```
+Frontend/marca_detalle.php?slug=toyota
+```
+
+**Filtrar por modelo dentro de la marca:**
+```
+Frontend/marca_detalle.php?slug=toyota&modelo=Corolla
+```
+
+<ParamField query="slug" type="string" required>
+  Identificador único de la marca en la tabla `marcas`. Ejemplo: `toyota`, `honda`, `nissan`.
+</ParamField>
+
+<ParamField query="modelo" type="string">
+  Nombre del modelo de vehículo para sub-filtrar los repuestos. Ejemplo: `Corolla`, `Civic`. Opcional: si se omite, se muestran todos los repuestos de la marca.
+</ParamField>
+
+La consulta de productos en esta página filtra directamente por `marca_id` y opcionalmente por `modelo_vehiculo`:
+
+```php Frontend/marca_detalle.php
+$sqlProds = "SELECT * FROM productos WHERE marca_id = :marca_id AND activo = 1";
+
+if (!empty($modelo_filtrado)) {
+    $sqlProds .= " AND modelo_vehiculo = :modelo";
+    $paramsProds[':modelo'] = $modelo_filtrado;
+}
+
+$sqlProds .= " ORDER BY id DESC";
+```
+
+---
+
+## Estado vacío de la cuadrícula
+
+Cuando ningún producto coincide con los filtros activos, la tienda muestra un mensaje centrado en la cuadrícula:
+
+```
+No se encontraron productos disponibles bajo esta selección.
+```
+
+El usuario puede restablecer todos los filtros haciendo clic en el enlace **"Ver todo el catálogo"** que aparece junto al título de resultados cuando hay filtros activos.

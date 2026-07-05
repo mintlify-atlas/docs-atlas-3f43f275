@@ -1,0 +1,145 @@
+---
+title: "Instalar LUVEN en un servidor local con XAMPP"
+sidebarTitle: "Instalación"
+description: "Pasos completos para instalar LUVEN Taller & Repuestos en XAMPP. Incluye clonado del repositorio, configuración de Apache y primer acceso al sistema."
+---
+
+La instalación de LUVEN consiste en colocar el proyecto dentro del directorio raíz del servidor web local, crear la base de datos en MySQL y ajustar el archivo de conexión con tus credenciales. El proceso completo toma menos de diez minutos en una máquina con XAMPP ya instalado. No se requiere ejecutar ningún instalador ni comando de gestión de paquetes.
+
+## Pasos de instalación
+
+<Steps>
+  <Step title="Clonar o descargar el repositorio">
+    Abre una terminal en `C:/xampp/htdocs/` y ejecuta:
+
+    ```bash
+    git clone https://github.com/LVHJ-8/Proyecto_mecanica.git
+    ```
+
+    Si no tienes Git instalado, descarga el ZIP desde GitHub y extráelo directamente en `C:/xampp/htdocs/`. El resultado debe ser la carpeta `C:/xampp/htdocs/Proyecto_mecanica/`.
+  </Step>
+
+  <Step title="Colocar el proyecto en htdocs">
+    Verifica que la estructura quede exactamente en esta ruta:
+
+    ```
+    C:/xampp/htdocs/Proyecto_mecanica/
+    ```
+
+    Apache necesita encontrar el proyecto dentro de `htdocs` para servirlo. Si extrajiste el ZIP y quedó una carpeta doble (como `Proyecto_mecanica/Proyecto_mecanica/`), mueve el contenido interior un nivel hacia arriba.
+  </Step>
+
+  <Step title="Iniciar Apache y MySQL desde el Panel de Control de XAMPP">
+    Abre el **XAMPP Control Panel** y haz clic en **Start** para los módulos **Apache** y **MySQL**. Ambos deben mostrar fondo verde y el número de puerto activo:
+
+    - Apache → puerto `80` (o `443` para HTTPS)
+    - MySQL → puerto `3307` (configuración predeterminada de XAMPP)
+
+    Si MySQL arranca en el puerto `3306`, revisa la sección de [Configuración](/setup/configuracion) para cambiar el puerto en `adisionales/conexion.php`.
+  </Step>
+
+  <Step title="Crear la base de datos en phpMyAdmin">
+    Accede a phpMyAdmin desde tu navegador:
+
+    ```
+    http://localhost/phpmyadmin
+    ```
+
+    1. En el panel izquierdo, haz clic en **Nueva**.
+    2. Escribe el nombre `mecanica` en el campo **Nombre de la base de datos**.
+    3. Selecciona el cotejamiento `utf8mb4_general_ci`.
+    4. Haz clic en **Crear**.
+
+    Una vez creada la base de datos vacía, consulta la página [Base de Datos](/setup/base-de-datos) para obtener las sentencias `CREATE TABLE` completas y ejecutarlas en la pestaña **SQL** de phpMyAdmin.
+  </Step>
+
+  <Step title="Editar el archivo de conexión">
+    Abre `adisionales/conexion.php` y ajusta las variables según tu entorno:
+
+    ```php
+    $host     = 'localhost';
+    $port     = '3307'; // Cambia a '3306' si tu MySQL usa el puerto estándar
+    $db       = 'mecanica';
+    $user     = 'root';
+    $password = ''; // Ingresa tu contraseña si configuraste una en XAMPP
+    $charset  = 'utf8mb4';
+    ```
+
+    Para la mayoría de instalaciones de XAMPP nuevas, los valores por defecto funcionan sin modificación.
+  </Step>
+
+  <Step title="Crear los directorios de subida de imágenes">
+    El sistema sube imágenes a tres subdirectorios de `assets/img/`. Crea estas carpetas si no existen:
+
+    ```
+    assets/img/productos/
+    assets/img/marcas/
+    assets/img/modelos/
+    ```
+
+    En Windows con XAMPP no es necesario cambiar permisos. En Linux/macOS, asegúrate de que Apache tenga permisos de escritura (`chmod 755` o `chown www-data`).
+  </Step>
+
+  <Step title="Abrir la aplicación en el navegador">
+    Con Apache y MySQL en ejecución, accede a la aplicación desde:
+
+    ```
+    http://localhost/Proyecto_mecanica/
+    ```
+
+    Verás la página de inicio (`index.html`). Desde allí puedes navegar a la tienda, servicios y el formulario de citas. Para acceder al panel de administración ve a:
+
+    ```
+    http://localhost/Proyecto_mecanica/ADMIN/admin.php
+    ```
+
+    Se te redirigirá al login. Necesitas un usuario con `rol = 'admin'` en la tabla `usuarios`. Consulta la sección [Base de Datos](/setup/base-de-datos) para el INSERT de usuario administrador inicial.
+  </Step>
+</Steps>
+
+## Estructura del proyecto
+
+```
+Proyecto_mecanica/
+├── index.html                  # Landing page pública
+├── adisionales/                # Conexión a DB, autenticación y utilidades compartidas
+│   ├── conexion.php            # Configuración PDO (host, puerto, credenciales)
+│   ├── auth.php                # Registro, login y manejo de sesión
+│   ├── header.php              # Cabecera HTML reutilizable
+│   └── footer.php              # Pie de página HTML reutilizable
+├── Frontend/                   # Páginas orientadas al cliente
+│   ├── login.php               # Formulario de inicio de sesión
+│   ├── registro.php            # Formulario de registro de clientes
+│   ├── productos.php           # Tienda de repuestos y autopartes
+│   ├── servisios.php           # Catálogo de servicios del taller
+│   ├── cita.php                # Formulario para agendar una cita
+│   ├── carito.php              # Carrito de compras
+│   └── marca_detalle.php       # Vista de modelos por marca de vehículo
+├── ADMIN/                      # Panel de administración (requiere rol admin)
+│   ├── admin.php               # Dashboard con resumen de métricas
+│   ├── productos/              # CRUD de productos (CRUDProductos.php)
+│   ├── servisios/              # CRUD de servicios (CRUDServicios.php)
+│   ├── citas/                  # CRUD de citas (CRUDCitas.php)
+│   ├── categoria/              # CRUD de categorías (CRUDCategorias.php)
+│   ├── marcas/                 # CRUD de marcas (CRUDMarcas.php)
+│   ├── modelos_De_veiculos/    # CRUD de modelos de vehículos (CRUDModelos.php)
+│   └── trabajadores/           # CRUD de trabajadores y cargos (CRUDTrabajadores.php)
+└── assets/
+    ├── css/
+    │   ├── estilos.css         # Estilos del sitio público
+    │   └── estilos1.css        # Estilos del panel de administración
+    ├── js/
+    │   ├── agendar.js          # Lógica del formulario de citas
+    │   ├── tienda.js           # Lógica del carrito de compras
+    │   ├── servisios.js        # Comportamiento de la página de servicios
+    │   └── validaciones.js     # Validaciones generales de formularios
+    └── img/
+        ├── logos/              # Logotipos e imágenes de la empresa
+        ├── productos/          # Imágenes subidas de productos
+        ├── marcas/             # Logotipos de marcas de vehículos
+        └── modelos/            # Imágenes de modelos de vehículos
+```
+
+<Warning>
+  No expongas el directorio `ADMIN/` públicamente sin agregar una capa adicional de autenticación a nivel de servidor (por ejemplo, HTTP Basic Auth mediante `.htaccess`). La única protección integrada en el código es la comprobación de sesión PHP: si `$_SESSION['rol'] !== 'admin'`, el usuario es redirigido al login. Esta protección es suficiente para un entorno local, pero es insuficiente por sí sola en un servidor de producción accesible desde internet.
+</Warning>

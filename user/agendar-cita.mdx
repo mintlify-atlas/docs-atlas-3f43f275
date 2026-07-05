@@ -1,0 +1,177 @@
+---
+title: "Agendar una cita en el taller mecánico LUVEN"
+sidebarTitle: "Agendar Cita"
+description: "Reserva una cita de mantenimiento en LUVEN con verificación de disponibilidad en tiempo real. Los horarios ocupados se marcan automáticamente en rojo."
+---
+
+El formulario de citas de LUVEN (`Frontend/cita.php`) permite reservar un turno en el taller sin necesidad de llamar por teléfono. Al seleccionar una fecha, el sistema consulta automáticamente la base de datos y deshabilita en rojo los horarios que ya tienen citas confirmadas. Si el usuario no tiene cuenta, el mismo formulario crea una de forma automática al completar la reserva.
+
+---
+
+## URL de acceso
+
+```
+Frontend/cita.php
+```
+
+No requiere sesión previa para acceder. Si el usuario tiene sesión activa, la barra superior muestra los enlaces de carrito y cierre de sesión. Si no ha iniciado sesión, aparece una alerta informativa invitando a registrarse.
+
+---
+
+## Estructura del formulario
+
+El formulario está dividido en tres secciones: datos personales, datos del vehículo y selección de fecha y horario. El formulario envía todo por `POST` al controlador:
+
+```
+POST ../controladores/procesar_cita.php
+```
+
+---
+
+### Sección 1: Datos personales
+
+<ParamField body="nombre" type="string" required>
+  Nombre completo del titular de la cita. Ejemplo: `Juan Pérez`. Campo HTML: `nombre`.
+</ParamField>
+
+<ParamField body="correo" type="string" required>
+  Correo electrónico. Se usa para identificar o crear la cuenta del usuario. Campo HTML: `correo`.
+</ParamField>
+
+<ParamField body="telefono" type="string" required>
+  Número de teléfono o WhatsApp para contacto. Ejemplo: `987654321`. Campo HTML: `telefono`.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Contraseña para la cuenta de cliente que se crea automáticamente al reservar. Si el correo ya existe, se utiliza la cuenta existente. Campo HTML: `password`.
+</ParamField>
+
+---
+
+### Sección 2: Datos del vehículo
+
+<ParamField body="placa" type="string" required>
+  Número de placa del vehículo en formato peruano. Ejemplo: `ABC-123`. Campo HTML: `placa`.
+</ParamField>
+
+<ParamField body="vehiculo" type="string" required>
+  Marca y modelo del vehículo en texto libre. Ejemplo: `Toyota Corolla 2022`. Campo HTML: `vehiculo`.
+</ParamField>
+
+---
+
+### Sección 3: Fecha y horario
+
+<ParamField body="fecha_registro" type="string" required>
+  Fecha seleccionada para la cita en formato `YYYY-MM-DD`. Proviene del input `date` con id `fecha-cita`.
+</ParamField>
+
+<ParamField body="hora_seleccionada" type="string" required>
+  Horario elegido. Campo oculto (`hidden`) con id `hora-seleccionada`. Su valor es establecido por JavaScript al hacer clic en uno de los botones de horario. Formato: `HH:MM` en 24 horas (ej. `14:00`).
+</ParamField>
+
+---
+
+## Horarios disponibles
+
+Los turnos están definidos de forma fija en el HTML del formulario. Hay **6 bloques de hora** por día:
+
+| `data-hora` (24h) | Etiqueta mostrada |
+|---|---|
+| `08:00` | 08:00 AM |
+| `09:30` | 09:30 AM |
+| `11:00` | 11:00 AM |
+| `14:00` | 02:00 PM |
+| `15:30` | 03:30 PM |
+| `17:00` | 05:00 PM |
+
+Cada botón lleva el atributo `data-hora` con el valor en formato 24 horas, que es el que se almacena en la base de datos y se envía en el `POST`.
+
+---
+
+## Verificación de disponibilidad en tiempo real
+
+Cuando el usuario selecciona una fecha en el calendario, JavaScript realiza una petición `fetch` asíncrona al endpoint de disponibilidad. Los horarios ya reservados (estado distinto de `Cancelado`) se marcan en rojo y se deshabilitan automáticamente.
+
+### Endpoint de disponibilidad
+
+```
+GET Frontend/verificar_disponibilidad.php?fecha=YYYY-MM-DD
+```
+
+El endpoint consulta la tabla `citas` y devuelve un array JSON con los horarios ocupados:
+
+```php Frontend/verificar_disponibilidad.php
+$stmt = $pdo->prepare(
+    "SELECT hora_seleccionada
+     FROM citas
+     WHERE fecha_registro = ?
+       AND estado != 'Cancelado'"
+);
+$stmt->execute([$fecha]);
+$horasOcupadas = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+
+header('Content-Type: application/json');
+echo json_encode($horasOcupadas);
+```
+
+**Ejemplo de respuesta:**
+```json
+["08:00", "14:00"]
+```
+
+### Código JavaScript de disponibilidad
+
+```javascript assets/js/agendar.js
+fechaInput.addEventListener("change", function () {
+    const fechaSeleccionada = this.value;
+    fetch(`../../Frontend/verificar_disponibilidad.php?fecha=${fechaSeleccionada}`)
+        .then(response => response.json())
+        .then(horasOcupadas => {
+            botonesHora.forEach(boton => {
+                boton.disabled = false;
+                boton.classList.remove("ocupado", "seleccionado");
+            });
+            horasOcupadas.forEach(horaBloqueada => {
+                const boton = document.querySelector(`.bloque-hora[data-hora="${horaBloqueada}"]`);
+                if (boton) {
+                    boton.disabled = true;
+                    boton.classList.add("ocupado");
+                }
+            });
+        });
+});
+```
+
+### Estados visuales de los botones de horario
+
+| Estado | Clase CSS | Color | Interacción |
+|---|---|---|---|
+| Disponible | _(sin clase especial)_ | Azul | Clickeable |
+| Ocupado | `ocupado` | Rojo | Deshabilitado |
+| Seleccionado | `seleccionado` | Verde | El valor se guarda en el campo oculto |
+
+---
+
+## Flujo completo de reserva
+
+<Steps>
+  <Step title="Ingresar datos personales y del vehículo">
+    El usuario completa nombre, correo, teléfono, contraseña, número de placa y descripción del vehículo (marca y modelo).
+  </Step>
+  <Step title="Seleccionar la fecha">
+    Al elegir una fecha en el calendario, el script `agendar.js` realiza automáticamente la consulta de disponibilidad y actualiza el estado visual de los botones de horario.
+  </Step>
+  <Step title="Elegir un horario disponible">
+    El usuario hace clic en uno de los bloques azules. El botón cambia a verde y su valor `data-hora` se copia al campo oculto `hora_seleccionada`.
+  </Step>
+  <Step title="Enviar el formulario">
+    El botón **"Registrar y Reservar Cita"** envía el formulario por `POST` a `../controladores/procesar_cita.php`, que registra la cita y crea la cuenta de cliente si el correo no existía previamente.
+  </Step>
+</Steps>
+
+---
+
+<Note>
+  Si ya tienes sesión activa, la barra superior de la página mostrará los enlaces **Ver Carrito** y **Cerrar Sesión**. Si navegas a `Frontend/cita.php` sin sesión, aparecerá una alerta informativa con el mensaje `"Para continuar es necesario que se registre o inicie sesión."`, pero el formulario de citas sigue siendo accesible y funcional para todos los visitantes — la cuenta se crea automáticamente al completar la reserva.
+</Note>

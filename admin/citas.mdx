@@ -1,0 +1,102 @@
+---
+title: "Gestionar citas del taller mecánico en el panel LUVEN"
+sidebarTitle: "Citas"
+description: "Consulta, edita y cancela las citas agendadas por los clientes en LUVEN. Cada cita incluye cliente, servicio, fecha, hora y estado actualizable."
+---
+
+El módulo de citas centraliza todas las reservas realizadas por los clientes desde el formulario público del taller. Cada fila de la tabla representa una cita agendada y reúne datos de cuatro tablas relacionadas: el cliente que reservó, el servicio solicitado, el bloque horario asignado y el estado actual del turno. Desde aquí el administrador puede revisar la agenda diaria, confirmar o cancelar turnos y mantener un historial completo de atención sin necesidad de acceder directamente a la base de datos.
+
+## Acceso y protección
+
+La página se encuentra en `ADMIN/citas/CRUDCitas.php`. El acceso está restringido por sesión: cualquier usuario cuyo `$_SESSION['rol']` sea distinto de `admin` es redirigido automáticamente al inicio antes de que se cargue cualquier contenido.
+
+## Tabla de citas
+
+La vista principal lista todas las citas ordenadas por fecha descendente y, dentro de la misma fecha, por hora ascendente. Los datos se obtienen mediante un `JOIN` entre las tablas `citas`, `usuarios`, `servicios` y `horarios_atencion`, lo que permite mostrar los nombres legibles en lugar de los identificadores numéricos.
+
+| Columna | Fuente | Descripción |
+|---|---|---|
+| **Fecha** | `citas.fecha` | Día agendado por el cliente |
+| **Hora** | `horarios_atencion.formato_visible` | Bloque horario con formato de visualización |
+| **Cliente** | `usuarios.nombre` | Nombre del usuario registrado |
+| **Servicio** | `servicios.nombre` | Servicio solicitado al agendar |
+| **Estado** | `citas.estado` | Estado actual del turno (badge con color) |
+| **Acciones** | — | Botones para editar o eliminar la cita |
+
+### Consulta principal
+
+```sql
+SELECT c.id, u.nombre AS cliente, s.nombre AS servicio,
+       h.formato_visible AS hora, c.fecha, c.estado
+FROM citas c
+JOIN usuarios u   ON c.usuario_id  = u.id
+JOIN servicios s  ON c.servicio_id  = s.id
+JOIN horarios_atencion h ON c.horario_id = h.id
+ORDER BY c.fecha DESC, h.hora ASC;
+```
+
+### Modelo de datos
+
+La tabla `citas` actúa como entidad central que referencia tres tablas de soporte:
+
+- `citas.usuario_id` → `usuarios.id`: vincula la cita al cliente que la creó.
+- `citas.servicio_id` → `servicios.id`: identifica el servicio mecánico solicitado.
+- `citas.horario_id` → `horarios_atencion.id`: apunta al bloque horario disponible, cuyo campo `formato_visible` contiene la representación legible de la hora (por ejemplo, `08:00 AM`).
+
+## Ciclo de vida del estado
+
+Cada cita transita por un conjunto fijo de estados representados visualmente como badges con color en la columna **Estado**. El flujo normal es:
+
+```
+Pendiente → Confirmada → Completada
+```
+
+En cualquier punto del ciclo, una cita puede moverse al estado `Cancelado`. Los cuatro valores posibles son:
+
+| Estado | Significado |
+|---|---|
+| `Pendiente` | Cita recibida, aún sin confirmar por el taller |
+| `Confirmada` | El taller aceptó el turno y el cliente fue notificado |
+| `Completada` | El servicio fue realizado exitosamente |
+| `Cancelado` | La cita fue anulada (por el cliente o el administrador) |
+
+## Editar una cita
+
+Para cambiar el estado de una cita, usa el botón **Editar** en la columna de acciones. Esto redirige a:
+
+```
+editar_cita.php?id=X
+```
+
+Desde esa página es posible actualizar el campo `estado` al valor que corresponda según la etapa actual del servicio. Se recomienda confirmar los turnos lo antes posible para que los clientes tengan certeza de su reserva.
+
+## Eliminar una cita
+
+El botón **Eliminar** ejecuta una confirmación en JavaScript antes de redirigir a:
+
+```
+eliminar_cita.php?id=X
+```
+
+La eliminación es permanente: el registro desaparece de la base de datos y no puede recuperarse. La confirmación evita borrados accidentales, pero no reemplaza a una política de retención de historial.
+
+<Tip>
+  Marca una cita como `Cancelado` en lugar de eliminarla. Esto conserva el historial completo de reservas del taller y, al mismo tiempo, libera automáticamente el bloque horario para que nuevos clientes puedan agendarse en ese mismo turno.
+</Tip>
+
+## Disponibilidad de horarios
+
+Cuando un cliente selecciona una fecha en el formulario público, el sistema consulta los turnos ya ocupados para ese día y los excluye del selector. Los seis bloques horarios fijos disponibles son: `08:00`, `09:30`, `11:00`, `14:00`, `15:30` y `17:00`.
+
+El endpoint `Frontend/verificar_disponibilidad.php` recibe la fecha como parámetro y devuelve un arreglo JSON con las horas ya reservadas:
+
+```sql
+-- Called by Frontend/verificar_disponibilidad.php?fecha=YYYY-MM-DD
+SELECT hora_seleccionada
+FROM citas
+WHERE fecha_registro = :fecha
+  AND estado != 'Cancelado';
+-- Returns JSON array: ["08:00", "14:00"]
+```
+
+Las citas con estado `Cancelado` quedan excluidas de esta consulta, de modo que el horario vuelve a estar disponible de forma inmediata para cualquier otra reserva. Esto hace que cambiar el estado a `Cancelado` sea preferible a la eliminación directa cuando se desea liberar un turno.

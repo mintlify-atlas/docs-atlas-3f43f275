@@ -1,0 +1,139 @@
+---
+title: "Configurar la conexión y variables de LUVEN"
+sidebarTitle: "Configuración"
+description: "Ajusta la conexión a MySQL, el puerto, credenciales y variables de entorno de LUVEN. Incluye configuración de Apache y solución a errores comunes."
+---
+
+Toda la configuración de LUVEN Taller & Repuestos está centralizada en un único archivo: `adisionales/conexion.php`. No existe ningún archivo `.env` ni constantes dispersas en el proyecto: cualquier cambio de entorno (puerto, contraseña, nombre de base de datos) se realiza editando directamente ese archivo antes de la primera ejecución. Esta sección describe cada variable disponible, las opciones PDO activas y los pasos para garantizar que las subidas de imágenes funcionen correctamente.
+
+## Archivo de conexión: `adisionales/conexion.php`
+
+El archivo crea una instancia PDO global (`$pdo`) que todos los demás scripts del proyecto incluyen mediante `require_once`. Su contenido completo es:
+
+```php
+<?php
+$host     = 'localhost';
+$port     = '3307'; // Puerto predeterminado de XAMPP
+$db       = 'mecanica';
+$user     = 'root';
+$password = ''; // Vacío si no configuraste contraseña en XAMPP
+$charset  = 'utf8mb4';
+
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+];
+
+$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
+
+try {
+    $pdo = new PDO($dsn, $user, $password, $options);
+} catch (\PDOException $e) {
+    die("Error crítico de conexión: " . $e->getMessage());
+}
+```
+
+## Variables de configuración
+
+| Variable | Valor por defecto | Descripción |
+|---|---|---|
+| `$host` | `localhost` | Hostname del servidor MySQL. Cambia a la IP del servidor en producción. |
+| `$port` | `3307` | Puerto MySQL. XAMPP usa 3307 por defecto; la mayoría de servidores usan 3306. |
+| `$db` | `mecanica` | Nombre de la base de datos. Debe coincidir con la base creada en phpMyAdmin. |
+| `$user` | `root` | Usuario MySQL. En producción, usa un usuario con privilegios limitados. |
+| `$password` | `''` | Contraseña MySQL. Vacío en instalaciones XAMPP sin contraseña configurada. |
+| `$charset` | `utf8mb4` | Codificación de caracteres. No cambies este valor para mantener soporte de tildes. |
+
+## Opciones PDO activas
+
+Las tres opciones configuradas en el array `$options` afectan el comportamiento de todas las consultas del sistema:
+
+| Opción PDO | Valor | Efecto |
+|---|---|---|
+| `ATTR_ERRMODE` | `ERRMODE_EXCEPTION` | Los errores SQL lanzan una excepción `PDOException` en lugar de devolver `false` silenciosamente. |
+| `ATTR_DEFAULT_FETCH_MODE` | `FETCH_ASSOC` | Los resultados de `fetch()` y `fetchAll()` devuelven arrays asociativos (claves = nombres de columna). |
+| `ATTR_EMULATE_PREPARES` | `false` | Las sentencias preparadas son ejecutadas directamente por el driver MySQL nativo, sin emulación PHP. |
+
+## Gestión de sesiones
+
+Las sesiones PHP se inician en cada script mediante la siguiente verificación, que evita el error "headers already sent" cuando un archivo es incluido más de una vez:
+
+```php
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+```
+
+El sistema almacena tres variables en `$_SESSION` al hacer login:
+
+| Clave de sesión | Contenido | Uso |
+|---|---|---|
+| `$_SESSION['usuario_id']` | `id` del usuario en tabla `usuarios` | Asociar citas y acciones al usuario autenticado |
+| `$_SESSION['nombre']` | Nombre completo del usuario | Mostrar saludo en vistas |
+| `$_SESSION['rol']` | `'admin'` o `'cliente'` | Controlar acceso al panel ADMIN y redirección post-login |
+
+La redirección inteligente en `adisionales/auth.php` envía al usuario a `ADMIN/admin.php` si su rol es `admin`, o a `index.html` si es `cliente`.
+
+## Rutas de subida de imágenes
+
+El panel de administración permite subir imágenes para tres tipos de entidades. Cada tipo usa un subdirectorio específico dentro de `assets/img/`:
+
+| Entidad | Directorio de destino | Script que realiza la subida |
+|---|---|---|
+| Productos | `assets/img/productos/` | `ADMIN/productos/procesar_producto.php` |
+| Marcas de vehículos | `assets/img/marcas/` | `ADMIN/marcas/procesar_marca.php` |
+| Modelos de vehículos | `assets/img/modelos/` | `ADMIN/modelos_De_veiculos/procesar_modelo.php` |
+
+Estos tres directorios deben existir y ser escribibles por el proceso de Apache antes de intentar subir cualquier imagen. En Windows con XAMPP esto ocurre automáticamente. En Linux:
+
+```bash
+mkdir -p assets/img/productos assets/img/marcas assets/img/modelos
+chmod 755 assets/img/productos assets/img/marcas assets/img/modelos
+```
+
+## Errores comunes y soluciones
+
+<AccordionGroup>
+  <Accordion title='"Error crítico de conexión: SQLSTATE[HY000] [2002]"'>
+    Este error significa que PHP no puede establecer conexión con el servidor MySQL. Las causas más frecuentes son:
+
+    - **MySQL no está en ejecución**: abre el XAMPP Control Panel y verifica que el módulo MySQL muestre fondo verde. Si no arranca, revisa el log de XAMPP para detectar conflictos de puerto.
+    - **Puerto incorrecto**: si MySQL arrancó en el puerto `3306` pero `conexion.php` tiene `$port = '3307'`, la conexión fallará. Ajusta el valor de `$port` para que coincida con el puerto real que muestra XAMPP.
+    - **Host incorrecto en producción**: en servidores compartidos el host no suele ser `localhost` sino el nombre del servidor de base de datos que indica el panel de hosting. Actualiza `$host` con ese valor.
+  </Accordion>
+
+  <Accordion title="Access denied for user root at localhost">
+    MySQL rechaza las credenciales enviadas. Esto ocurre cuando:
+
+    - Configuraste una contraseña para el usuario `root` en XAMPP pero `$password` sigue vacío en `conexion.php`. Edita el archivo y coloca la contraseña correcta:
+
+      ```php
+      $password = 'tu_contraseña_real';
+      ```
+
+    - En servidores de producción el usuario `root` suele estar desactivado para conexiones remotas. Crea un usuario dedicado en phpMyAdmin con permisos solo sobre la base de datos `mecanica` y actualiza `$user` y `$password` en `conexion.php`.
+  </Accordion>
+
+  <Accordion title='El panel ADMIN muestra "Acceso denegado" o redirige al login'>
+    El panel de administración comprueba que `$_SESSION['rol'] === 'admin'` al inicio de cada archivo PHP en `ADMIN/`. Si ves una redirección inmediata al login, puede deberse a:
+
+    - **El usuario existe pero tiene rol `cliente`**: accede a phpMyAdmin, abre la tabla `usuarios`, localiza tu usuario y cambia la columna `rol` de `cliente` a `admin`.
+
+      ```sql
+      UPDATE usuarios SET rol = 'admin' WHERE correo = 'tu@correo.com';
+      ```
+
+    - **La sesión expiró**: el tiempo de vida de sesión de PHP por defecto es 24 minutos de inactividad. Simplemente vuelve a iniciar sesión.
+    - **Cookies bloqueadas**: si el navegador bloquea cookies de terceros o está en modo incógnito con cookies desactivadas, las sesiones PHP no persisten. Usa una ventana normal del navegador.
+  </Accordion>
+
+  <Accordion title='Las imágenes subidas desde el admin no aparecen en el sitio'>
+    El sistema guarda solo el nombre del archivo en la base de datos y construye la ruta relativa en el HTML. Si las imágenes no se muestran, verifica:
+
+    - **Los directorios no existen**: comprueba que `assets/img/productos/`, `assets/img/marcas/` y `assets/img/modelos/` estén creados dentro de la carpeta del proyecto. Si no existen, PHP no puede guardar el archivo y registra el nombre en la base de datos apuntando a un archivo inexistente.
+    - **Permisos de escritura insuficientes** (Linux/macOS): Apache debe poder escribir en esos directorios. Ejecuta `chmod 755` sobre cada subdirectorio o asigna el propietario correcto con `chown www-data`.
+    - **Extensión de archivo no permitida**: los formularios de subida aceptan imágenes estándar (jpg, jpeg, png, gif, webp). Archivos con extensiones distintas no serán movidos al directorio de destino.
+  </Accordion>
+</AccordionGroup>

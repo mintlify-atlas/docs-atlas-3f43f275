@@ -1,0 +1,113 @@
+---
+title: "LUVEN Taller & Repuestos: plataforma automotriz web"
+sidebarTitle: "Introducción"
+description: "LUVEN es una aplicación PHP que combina taller mecánico y tienda de repuestos. Conoce su arquitectura, tecnologías y funcionalidades principales."
+---
+
+LUVEN Taller & Repuestos es una aplicación web full-stack construida en PHP puro que integra en un solo sistema dos verticales de negocio complementarias: un taller mecánico con agenda de citas en línea y una tienda de repuestos automotrices con carrito de compras. El proyecto no depende de ningún framework PHP externo; toda la lógica de enrutamiento, autenticación y acceso a datos está implementada directamente con sesiones nativas y PDO, lo que lo convierte en un ejemplo limpio de PHP procedimental orientado a producción. La base de datos relacional `mecanica` en MySQL estructura desde el catálogo de productos y servicios hasta los horarios de atención, las marcas y modelos de vehículos, y la gestión del personal del taller.
+
+## Dos áreas principales
+
+<CardGroup cols={2}>
+  <Card title="Sitio del Cliente" icon="user" href="#funcionalidades-para-el-cliente">
+    Portal público con landing page, catálogo de servicios, tienda de repuestos filtrable por categoría / marca / modelo, agendamiento de citas con verificación de disponibilidad en tiempo real y carrito de compras persistente en sesión.
+  </Card>
+  <Card title="Panel de Administración" icon="shield-halved" href="#funcionalidades-para-el-administrador">
+    Back-office protegido por rol `admin`. Incluye dashboard con KPIs (total de productos, servicios y citas del día), alertas de stock bajo, próximas citas y CRUD completo para todas las entidades del sistema.
+  </Card>
+</CardGroup>
+
+## Stack tecnológico
+
+- **PHP 7.4+** — lógica de servidor, sesiones y renderizado de vistas
+- **MySQL** — base de datos relacional accedida vía **PDO** con prepared statements
+- **HTML5 / CSS3** — maquetación semántica con hojas de estilo propias (`estilos.css`, `estilos1.css`)
+- **JavaScript (vanilla)** — interactividad del cliente: verificación de horarios (Fetch API), filtrado de tienda y validación de formularios
+- **Sin framework PHP externo** — enrutamiento y autenticación implementados con sesiones nativas de PHP
+- **XAMPP / WAMP** — entorno de desarrollo local recomendado (Apache + MySQL)
+
+## Estructura de archivos clave
+
+```
+Proyecto_mecanica/
+├── index.html                        # Landing page con slider de bienvenida
+├── Frontend/                         # Páginas del cliente
+│   ├── login.php                     # Inicio de sesión
+│   ├── registro.php                  # Registro de nuevos usuarios
+│   ├── productos.php                 # Tienda con filtros dinámicos
+│   ├── servisios.php                 # Catálogo de servicios del taller
+│   ├── cita.php                      # Formulario de agendamiento
+│   ├── carito.php                    # Carrito de compras
+│   ├── marca_detalle.php             # Detalle de productos por marca
+│   ├── nosotros.html                 # Página institucional
+│   └── contacto.html                 # Formulario de contacto
+├── ADMIN/                            # Back-office (acceso solo rol admin)
+│   ├── admin.php                     # Dashboard principal con KPIs
+│   ├── productos/                    # CRUD de repuestos
+│   ├── servisios/                    # CRUD de servicios mecánicos
+│   ├── citas/                        # CRUD y gestión de citas
+│   ├── categoria/                    # CRUD de categorías de productos
+│   ├── marcas/                       # CRUD de marcas de vehículos
+│   ├── modelos_De_veiculos/          # CRUD de modelos de vehículos
+│   └── trabajadores/                 # CRUD de personal del taller
+├── adisionales/                      # Utilidades compartidas
+│   ├── conexion.php                  # Conexión PDO a MySQL
+│   ├── auth.php                      # Lógica de login y registro
+│   ├── procesar_login.php            # Procesamiento del formulario de login
+│   ├── funciones.php                 # Funciones auxiliares reutilizables
+│   ├── header.php                    # Cabecera común del sitio
+│   └── footer.php                    # Pie de página común del sitio
+└── assets/
+    ├── css/
+    │   ├── estilos.css               # Estilos del frontend público
+    │   └── estilos1.css              # Estilos del panel de administración
+    ├── js/
+    │   ├── agendar.js                # Verificación de disponibilidad (Fetch API)
+    │   ├── tienda.js                 # Filtrado dinámico de la tienda
+    │   └── validaciones.js          # Validación de formularios del cliente
+    └── img/                          # Imágenes, logos y recursos gráficos
+```
+
+## Base de datos: `mecanica`
+
+La base de datos centraliza toda la información del negocio. Las tablas principales son:
+
+| Tabla                  | Propósito                                                      |
+| ---------------------- | -------------------------------------------------------------- |
+| `usuarios`             | Clientes y administradores con rol (`admin` / `cliente`)       |
+| `productos`            | Catálogo de repuestos con stock, precio, imagen y categoría    |
+| `servicios`            | Servicios mecánicos ofrecidos con nombre y precio              |
+| `citas`                | Reservas de clientes vinculadas a horario, usuario y servicio  |
+| `horarios_atencion`    | Franjas horarias disponibles con formato legible               |
+| `categorias`           | Categorías de clasificación de los productos                   |
+| `marcas`               | Marcas de vehículos con imagen y slug para filtrado            |
+| `modelos_vehiculos`    | Modelos asociados a cada marca                                 |
+| `trabajadores`         | Personal del taller con datos de contacto y cargo              |
+| `cargos`               | Cargos o roles laborales de los trabajadores                   |
+
+<Note>
+  La configuración por defecto de `adisionales/conexion.php` usa el **puerto 3307** en lugar del 3306 estándar. Este es un comportamiento común en ciertas instalaciones de XAMPP donde el servicio MySQL corre en un puerto alternativo para evitar conflictos con otras instancias de MySQL del sistema. Si tu instalación usa 3306, actualiza el valor `$port` en ese archivo.
+</Note>
+
+## Autenticación y roles
+
+LUVEN implementa autenticación mediante **sesiones PHP nativas**. Al iniciar sesión, `adisionales/auth.php` verifica las credenciales con `password_verify()` (contraseñas almacenadas con `PASSWORD_BCRYPT`) y almacena en `$_SESSION` el id, nombre y rol del usuario.
+
+El sistema reconoce dos roles:
+
+- **`admin`** — redirige a `ADMIN/admin.php` tras el login. Todas las rutas del panel verifican `$_SESSION['rol'] === 'admin'` y redirigen al login si la comprobación falla.
+- **`cliente`** — redirige a `index.html` tras el login. Puede agendar citas, explorar el catálogo y usar el carrito.
+
+## Funcionalidades para el cliente
+
+- **Navegación de servicios** — listado completo de los servicios mecánicos disponibles con nombre y precio.
+- **Tienda de repuestos** — búsqueda por texto, filtrado por categoría (sidebar) y filtrado por marca de vehículo. Los productos con pocas unidades muestran una alerta de stock.
+- **Agendamiento de citas** — el formulario en `Frontend/cita.php` consulta en tiempo real la disponibilidad de horarios mediante una petición Fetch a `verificar_disponibilidad.php`, bloqueando visualmente los horarios ya ocupados.
+- **Carrito de compras** — gestión de productos seleccionados persistida en sesión (`Frontend/carito.php`).
+
+## Funcionalidades para el administrador
+
+- **Dashboard con KPIs** — muestra en tiempo real el total de productos registrados, servicios activos y citas del día actual.
+- **Alertas de stock bajo** — lista los productos con 5 o menos unidades disponibles directamente en el panel principal.
+- **Próximas citas** — tabla con las citas agendadas a partir de la fecha actual, mostrando hora y nombre del cliente.
+- **CRUD completo** — gestión total (crear, leer, actualizar y eliminar) para: productos, servicios, citas, categorías, marcas, modelos de vehículos y trabajadores.

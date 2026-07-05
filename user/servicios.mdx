@@ -1,0 +1,125 @@
+---
+title: "Explorar el catálogo de servicios mecánicos"
+sidebarTitle: "Servicios"
+description: "Navega el catálogo de servicios de LUVEN Taller & Repuestos. Cada servicio muestra descripción, duración estimada y precio. Reserva desde la misma tarjeta."
+---
+
+La página de servicios de LUVEN (`Frontend/servisios.php`) muestra todas las operaciones mecánicas disponibles en el taller. El catálogo se carga dinámicamente desde la base de datos en cada visita, de modo que cualquier servicio creado o modificado por el administrador aparece de forma inmediata para el usuario. Desde cada tarjeta de servicio es posible ir directamente al formulario de citas con el servicio preseleccionado.
+
+---
+
+## URL de acceso
+
+```
+Frontend/servisios.php
+```
+
+No requiere sesión activa. Cualquier visitante puede consultar el catálogo de servicios sin necesidad de iniciar sesión.
+
+---
+
+## Cómo se obtienen los servicios
+
+Al cargar la página, el controlador PHP ejecuta la siguiente consulta sobre la tabla `servicios`:
+
+```sql
+SELECT id, nombre, descripcion, duracion_minutos, precio
+FROM servicios
+ORDER BY id DESC
+```
+
+Los servicios se ordenan de más reciente a más antiguo (`ORDER BY id DESC`). Los resultados se almacenan en el arreglo `$servicios` para ser renderizados en la cuadrícula de tarjetas.
+
+```php Frontend/servisios.php
+try {
+    $stmt = $pdo->query(
+        "SELECT id, nombre, descripcion, duracion_minutos, precio
+         FROM servicios
+         ORDER BY id DESC"
+    );
+    $servicios = $stmt->fetchAll();
+} catch (\PDOException $e) {
+    die("Error al conectar con el catálogo: " . $e->getMessage());
+}
+```
+
+---
+
+## Datos mostrados por servicio
+
+Cada tarjeta de servicio presenta los siguientes campos tomados directamente de la tabla `servicios`:
+
+| Campo DB | Etiqueta visible | Formato |
+|---|---|---|
+| `nombre` | Título de la tarjeta | Texto plano |
+| `descripcion` | Párrafo descriptivo | Texto plano (fallback: `"Mantenimiento preventivo general."`) |
+| `duracion_minutos` | Duración estimada | `⏱️ X min` |
+| `precio` | Precio del servicio | `S/ X.XX` (usando `number_format($precio, 2)`) |
+
+### Ejemplo de renderizado de una tarjeta
+
+```php Frontend/servisios.php
+<div class="servicio-card">
+    <div class="servicio-icon">🔧</div>
+    <h3><?php echo htmlspecialchars($servicio['nombre']); ?></h3>
+    <p><?php echo htmlspecialchars($servicio['descripcion'] ?? 'Mantenimiento preventivo general.'); ?></p>
+
+    <div class="servicio-meta">
+        <span>⏱️ <?php echo htmlspecialchars($servicio['duracion_minutos']); ?> min</span>
+    </div>
+
+    <div class="servicio-footer">
+        <span class="servicio-precio">S/ <?php echo number_format($servicio['precio'], 2); ?></span>
+        <a href="../modulos/citas/agendar.php?servicio_id=<?php echo $servicio['id']; ?>"
+           class="btn-reservar-servicio">
+            Reservar Cita
+        </a>
+    </div>
+</div>
+```
+
+---
+
+## Botón "Reservar Cita"
+
+Cada tarjeta incluye un botón de acción directo que lleva al formulario de citas con el servicio correspondiente preseleccionado. El `id` del servicio se pasa como parámetro GET en la URL:
+
+```
+../modulos/citas/agendar.php?servicio_id=X
+```
+
+Donde `X` es el valor del campo `id` del servicio en la base de datos. Esto permite al formulario de citas saber qué tipo de operación mecánica está siendo reservada.
+
+---
+
+## Estado vacío del catálogo
+
+Si la tabla `servicios` no contiene registros (por ejemplo, durante la configuración inicial del sistema), la página muestra un mensaje informativo en lugar de la cuadrícula vacía:
+
+```php Frontend/servisios.php
+<?php if (empty($servicios)): ?>
+    <div class="no-servicios">
+        <p>🔧 Estamos actualizando nuestro catálogo de operaciones mecánicas en línea.</p>
+    </div>
+<?php endif; ?>
+```
+
+---
+
+## Gestión de servicios (panel de administración)
+
+Los servicios que aparecen en esta página son gestionados íntegramente desde el panel de administración. El administrador puede crear, editar y eliminar servicios a través de:
+
+<CardGroup cols={3}>
+  <Card title="Gestión de Servicios" icon="list" href="/admin/servicios">
+    Vista principal del CRUD de servicios en el panel admin.
+  </Card>
+  <Card title="Editar servicio" icon="pen-to-square" href="/admin/servicios">
+    Formulario de modificación de nombre, descripción, duración y precio.
+  </Card>
+  <Card title="Panel Admin" icon="gauge" href="/admin/overview">
+    Accede al panel de control general para gestionar todos los recursos.
+  </Card>
+</CardGroup>
+
+Cada vez que se agrega o modifica un servicio en el panel, el cambio se refleja automáticamente en `Frontend/servisios.php` en la siguiente carga de la página, ya que la consulta se ejecuta en tiempo real sin caché.

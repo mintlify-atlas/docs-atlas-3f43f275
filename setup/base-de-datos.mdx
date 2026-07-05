@@ -1,0 +1,184 @@
+---
+title: "Estructura de la base de datos mecanica de LUVEN"
+sidebarTitle: "Base de Datos"
+description: "Esquema completo de la base de datos MySQL de LUVEN. Tablas, columnas clave, relaciones y sentencias CREATE TABLE para inicializar el sistema."
+---
+
+La base de datos de LUVEN se llama `mecanica` y usa el juego de caracteres `utf8mb4` para soportar correctamente tildes, caracteres especiales y emojis. Está compuesta por diez tablas que cubren las cuatro áreas funcionales del sistema: gestión de usuarios y autenticación, catálogo de productos y repuestos, agenda de citas con servicios y horarios, y administración del personal del taller. Todas las relaciones entre tablas se refuerzan mediante claves foráneas declaradas explícitamente.
+
+## Tablas del sistema
+
+| Tabla | Propósito |
+|---|---|
+| `usuarios` | Clientes y administradores registrados. Almacena credenciales y rol de acceso. |
+| `categorias` | Categorías de productos (ej. Filtros, Frenos, Lubricantes). |
+| `marcas` | Marcas de vehículos con su slug e imagen de logotipo. |
+| `modelos_vehiculos` | Modelos concretos vinculados a una marca (ej. Toyota Corolla). |
+| `productos` | Catálogo completo de repuestos y autopartes con precio, stock e imagen. |
+| `servicios` | Servicios ofrecidos por el taller con precio y duración estimada. |
+| `horarios_atencion` | Bloques horarios disponibles para agendar citas. |
+| `citas` | Reservas de clientes que unen usuario, servicio y horario en una fecha. |
+| `cargos` | Puestos de trabajo o especialidades del taller (ej. Electricista Automotriz). |
+| `trabajadores` | Mecánicos y personal del taller, con cargo, DNI y datos de contacto. |
+
+## Sentencias CREATE TABLE
+
+Ejecuta las siguientes sentencias en la pestaña **SQL** de phpMyAdmin, seleccionando primero la base de datos `mecanica`. El orden importa: las tablas referenciadas por claves foráneas deben crearse antes que las que las referencian.
+
+```sql
+-- 1. Usuarios del sistema (clientes y administradores)
+CREATE TABLE usuarios (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  nombre     VARCHAR(100)  NOT NULL,
+  correo     VARCHAR(150)  NOT NULL UNIQUE,
+  telefono   VARCHAR(20),
+  password   VARCHAR(255)  NOT NULL,
+  rol        ENUM('admin','cliente') NOT NULL DEFAULT 'cliente',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Categorías de productos
+CREATE TABLE categorias (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  nombre      VARCHAR(100) NOT NULL,
+  descripcion TEXT
+);
+
+-- 3. Marcas de vehículos
+CREATE TABLE marcas (
+  id     INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  slug   VARCHAR(100) NOT NULL UNIQUE,
+  imagen VARCHAR(255)
+);
+
+-- 4. Modelos de vehículos (depende de marcas)
+CREATE TABLE modelos_vehiculos (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  marca_id       INT NOT NULL,
+  nombre_modelo  VARCHAR(100) NOT NULL,
+  imagen_modelo  VARCHAR(255),
+  FOREIGN KEY (marca_id) REFERENCES marcas(id)
+);
+
+-- 5. Productos / repuestos (depende de categorias y marcas)
+CREATE TABLE productos (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  nombre          VARCHAR(150) NOT NULL,
+  descripcion     TEXT,
+  precio          DECIMAL(10,2) NOT NULL,
+  stock           INT NOT NULL DEFAULT 0,
+  imagen          VARCHAR(255),
+  categoria_id    INT,
+  marca_id        INT,
+  activo          TINYINT(1) NOT NULL DEFAULT 1,
+  modelo_vehiculo VARCHAR(100),
+  FOREIGN KEY (categoria_id) REFERENCES categorias(id),
+  FOREIGN KEY (marca_id)     REFERENCES marcas(id)
+);
+
+-- 6. Servicios del taller
+CREATE TABLE servicios (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  nombre            VARCHAR(150) NOT NULL,
+  descripcion       TEXT,
+  duracion_minutos  INT,
+  precio            DECIMAL(10,2) NOT NULL,
+  precio_base       DECIMAL(10,2)
+);
+
+-- 7. Bloques horarios disponibles para citas
+CREATE TABLE horarios_atencion (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  hora            TIME NOT NULL,
+  formato_visible VARCHAR(20)
+);
+
+-- 8. Citas (depende de usuarios, servicios y horarios_atencion)
+CREATE TABLE citas (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id       INT,
+  servicio_id      INT,
+  horario_id       INT,
+  fecha            DATE NOT NULL,
+  fecha_registro   DATE,
+  hora_seleccionada VARCHAR(10),
+  estado           ENUM('Pendiente','Confirmada','Cancelado','Completada') DEFAULT 'Pendiente',
+  nombre           VARCHAR(100),
+  correo           VARCHAR(150),
+  telefono         VARCHAR(20),
+  placa            VARCHAR(20),
+  vehiculo         VARCHAR(150),
+  FOREIGN KEY (usuario_id)  REFERENCES usuarios(id),
+  FOREIGN KEY (servicio_id) REFERENCES servicios(id),
+  FOREIGN KEY (horario_id)  REFERENCES horarios_atencion(id)
+);
+
+-- 9. Cargos o especialidades del personal
+CREATE TABLE cargos (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  nombre_cargo VARCHAR(100) NOT NULL,
+  descripcion  TEXT
+);
+
+-- 10. Trabajadores del taller (depende de cargos)
+CREATE TABLE trabajadores (
+  id        INT AUTO_INCREMENT PRIMARY KEY,
+  cargo_id  INT,
+  nombre    VARCHAR(100) NOT NULL,
+  apellido  VARCHAR(100),
+  telefono  VARCHAR(20),
+  dni       VARCHAR(15),
+  activo    TINYINT(1) DEFAULT 1,
+  FOREIGN KEY (cargo_id) REFERENCES cargos(id)
+);
+```
+
+## Usuario administrador inicial
+
+Una vez creadas las tablas, inserta al menos un usuario con rol `admin` para poder acceder al panel de control. La contraseña se almacena encriptada con `PASSWORD_BCRYPT`; el valor de ejemplo a continuación corresponde a la cadena `admin123`:
+
+```sql
+INSERT INTO usuarios (nombre, correo, telefono, password, rol)
+VALUES (
+  'Administrador',
+  'admin@luven.com',
+  '999000000',
+  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+  'admin'
+);
+```
+
+Para crear un hash propio, usa la función PHP `password_hash('tu_contraseña', PASSWORD_BCRYPT)` en un script temporal o en la consola de XAMPP.
+
+## Diagrama de relaciones
+
+Las relaciones entre tablas siguen el siguiente esquema de dependencias:
+
+```
+usuarios ──────────────────────► citas
+servicios ─────────────────────► citas
+horarios_atencion ─────────────► citas
+
+categorias ────────────────────► productos
+marcas ─────────────────────────► productos
+marcas ─────────────────────────► modelos_vehiculos
+
+cargos ─────────────────────────► trabajadores
+```
+
+Cada flecha indica que la tabla de origen provee el `id` usado como clave foránea en la tabla de destino. La tabla `citas` es la de mayor complejidad relacional: cada registro une un cliente (`usuario_id`), un tipo de trabajo (`servicio_id`) y un bloque horario (`horario_id`) con una fecha concreta.
+
+<Note>
+  El formulario de citas en `Frontend/cita.php` muestra seis botones de horario fijos. Para que funcione correctamente, la tabla `horarios_atencion` debe contener exactamente esos seis registros. Insértalos con el siguiente bloque SQL:
+
+  ```sql
+  INSERT INTO horarios_atencion (hora, formato_visible) VALUES
+    ('08:00:00', '08:00 AM'),
+    ('09:30:00', '09:30 AM'),
+    ('11:00:00', '11:00 AM'),
+    ('14:00:00', '02:00 PM'),
+    ('15:30:00', '03:30 PM'),
+    ('17:00:00', '05:00 PM');
+  ```
+</Note>

@@ -1,0 +1,101 @@
+---
+title: "Gestionar servicios del taller mecánico en LUVEN"
+sidebarTitle: "Servicios"
+description: "Administra el catálogo de servicios mecánicos de LUVEN. Configura nombre, precio base y descripción. Los servicios activos aparecen en el catálogo público y en el formulario de citas."
+---
+
+El módulo de Servicios centraliza todos los trabajos mecánicos que LUVEN Taller & Repuestos ofrece a sus clientes. Cada servicio registrado aquí aparece automáticamente en el catálogo público de servicios y en el menú desplegable del formulario de citas en línea, de modo que los clientes pueden seleccionar y agendar el servicio que necesitan directamente desde la web.
+
+## Acceso
+
+Navega a `ADMIN/servisios/CRUDServicios.php` desde el panel de administración. La página presenta tres pestañas:
+
+| Pestaña | Descripción |
+|---|---|
+| **Lista de Servicios** | Tabla con todos los servicios registrados, ordenados por ID descendente |
+| **Nuevo Servicio** | Formulario para crear un nuevo registro de servicio |
+| **Previsualización** | Vista previa de cómo lucen las tarjetas de servicios en la página pública |
+
+---
+
+## Tabla de servicios
+
+La lista se obtiene con la siguiente consulta:
+
+```sql
+SELECT * FROM servicios ORDER BY id DESC
+```
+
+Los registros más recientes aparecen primero. Las columnas de la tabla son:
+
+| Columna | Descripción |
+|---|---|
+| **ID** | Identificador único autoincremental del servicio |
+| **Nombre** | Nombre del servicio mecánico |
+| **Precio Base (S/.)** | Precio de referencia en soles peruanos |
+| **Acciones** | Botones para **editar** o **eliminar** el registro |
+
+---
+
+## Crear un nuevo servicio
+
+Haz clic en la pestaña **Nuevo Servicio** para desplegar el formulario. Los datos se envían por `POST` a `procesar_servicio.php`.
+
+<ParamField body="nombre" type="string" required>
+  Nombre del servicio mecánico. Aparece en la tabla del admin, en el catálogo público `Frontend/servisios.php` y en el desplegable de selección de servicios del formulario de citas `Frontend/cita.php`. Ejemplo: `Cambio de aceite y filtro`.
+</ParamField>
+
+<ParamField body="precio_base" type="decimal" required>
+  Precio de referencia del servicio en soles peruanos (S/.). Acepta dos decimales (paso `0.01`). Este valor se muestra en la tabla del admin. Ejemplo: `80.00`. Ver la nota abajo sobre la relación con el campo `precio` de la página pública.
+</ParamField>
+
+<ParamField body="descripcion" type="text">
+  Descripción detallada del servicio. Aparece en la tarjeta del catálogo público `Frontend/servisios.php`. Aprovecha este campo para explicar en qué consiste el trabajo, qué incluye y cuánto tiempo toma aproximadamente.
+</ParamField>
+
+---
+
+## Relación con el formulario de citas
+
+El formulario de reserva de citas en `Frontend/cita.php` carga su menú desplegable de servicios directamente desde la tabla `servicios`. Cada servicio que agregues aquí estará disponible de inmediato para que los clientes lo seleccionen al agendar una cita. No se requiere ninguna configuración adicional.
+
+---
+
+## Relación con el catálogo público de servicios
+
+La página `Frontend/servisios.php` muestra una tarjeta por cada servicio en la base de datos. Los campos que se presentan al cliente son:
+
+| Campo en la tabla `servicios` | Mostrado como |
+|---|---|
+| `nombre` | Título de la tarjeta |
+| `descripcion` | Cuerpo descriptivo de la tarjeta |
+| `duracion_minutos` | Duración estimada del servicio |
+| `precio` | Precio visible al público en la tarjeta |
+
+<Note>
+  Los campos `duracion_minutos` y `precio` que se muestran en la página pública son columnas independientes de `precio_base`. Si la tarjeta de un servicio muestra **S/. 0.00** en la tienda, asegúrate de que la columna `precio` esté poblada en la base de datos junto a `precio_base`. Ambos campos pueden tener el mismo valor o diferir si manejas precios internos y precios al público distintos.
+</Note>
+
+---
+
+## Editar un servicio
+
+Haz clic en el botón **Editar** en la fila correspondiente. La acción apunta a:
+
+```
+editar_servicio.php?id=X
+```
+
+donde `X` es el `id` del servicio. El formulario se precarga con los valores actuales. Actualiza los campos necesarios y guarda los cambios.
+
+---
+
+## Eliminar un servicio
+
+Haz clic en el botón **Eliminar** en la fila del servicio. La solicitud se envía a:
+
+```
+eliminar_servicio.php?id=X
+```
+
+La eliminación es **permanente**. Ten en cuenta que si el servicio tiene citas asociadas en la tabla de citas, eliminar el registro podría afectar la integridad referencial de esos registros. Verifica las dependencias antes de eliminar un servicio activo.

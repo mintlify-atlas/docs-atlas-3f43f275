@@ -1,0 +1,114 @@
+---
+title: "Gestionar productos y repuestos en LUVEN Admin"
+sidebarTitle: "Productos"
+description: "Agrega, edita y elimina productos en el catálogo de LUVEN. Controla el stock, asigna categorías y marcas, y sube imágenes desde el panel de administración."
+---
+
+El módulo de Productos es el núcleo del catálogo de repuestos de LUVEN Taller & Repuestos. Desde aquí puedes registrar cada pieza o accesorio con su precio en soles, nivel de stock, categoría y marca asociada. Los cambios que realices se reflejan de inmediato en la tienda pública, siempre que el producto esté activo.
+
+## Acceso
+
+Navega a `ADMIN/productos/CRUDProductos.php` desde el panel de administración. La página presenta tres pestañas:
+
+| Pestaña | Descripción |
+|---|---|
+| **Lista de Productos** | Tabla con todos los productos registrados en la base de datos |
+| **Nuevo Producto** | Formulario para crear un nuevo registro |
+| **Previsualización** | Vista previa de cómo lucen las tarjetas de productos en la tienda |
+
+---
+
+## Tabla de productos
+
+La lista se construye con la siguiente consulta, que une la tabla `productos` con `categorias` y `marcas` para mostrar nombres legibles en lugar de IDs:
+
+```sql
+SELECT p.*, c.nombre AS categoria, m.nombre AS marca
+FROM productos p
+LEFT JOIN categorias c ON p.categoria_id = c.id
+LEFT JOIN marcas m ON p.marca_id = m.id
+```
+
+Las columnas que aparecen en la tabla son:
+
+| Columna | Descripción |
+|---|---|
+| **ID** | Identificador único autoincremental del producto |
+| **Nombre** | Nombre del repuesto o accesorio |
+| **Categoría** | Nombre de la categoría asignada (joined desde `categorias`) |
+| **Marca** | Nombre de la marca asignada (joined desde `marcas`), puede estar vacío |
+| **Precio (S/.)** | Precio de venta al público en soles peruanos |
+| **Stock** | Cantidad de unidades disponibles en inventario |
+| **Acciones** | Botones para **editar** o **eliminar** el registro |
+
+---
+
+## Crear un nuevo producto
+
+Haz clic en la pestaña **Nuevo Producto** para desplegar el formulario. Los datos se envían por `POST` a `procesar_producto.php` con codificación `multipart/form-data` para admitir la subida de imagen.
+
+<ParamField body="nombre" type="string" required>
+  Nombre del producto o repuesto. Aparece en la tarjeta de la tienda, en la tabla del admin y en el detalle del producto. Ejemplo: `Filtro de aceite Toyota Corolla`.
+</ParamField>
+
+<ParamField body="categoria_id" type="integer" required>
+  ID de la categoría a la que pertenece el producto. El selector se puebla dinámicamente desde la tabla `categorias`. Determina en qué sección del sidebar de filtros aparecerá el producto en `Frontend/productos.php`.
+</ParamField>
+
+<ParamField body="marca_id" type="integer">
+  ID de la marca del fabricante. El selector se puebla desde la tabla `marcas`. Campo opcional — si no se asigna, el producto aparece sin marca en la tabla y no se vincula a ninguna página de marca.
+</ParamField>
+
+<ParamField body="precio" type="decimal" required>
+  Precio de venta en soles peruanos (S/.). Acepta dos decimales (paso `0.01`). Ejemplo: `45.90`. Se muestra con el prefijo **S/.** tanto en la tienda como en la tabla del admin.
+</ParamField>
+
+<ParamField body="stock" type="integer" required>
+  Cantidad de unidades disponibles. Controla las alertas de stock bajo en el dashboard y la insignia de pocas unidades en la tienda pública.
+</ParamField>
+
+<ParamField body="imagen" type="file">
+  Imagen del producto en formato PNG o JPG. El archivo se sube al directorio `assets/img/productos/` en el servidor. Campo opcional — si no se sube imagen, la tarjeta mostrará la imagen por defecto del sistema.
+</ParamField>
+
+---
+
+## Reglas de visibilidad y alertas de stock
+
+El comportamiento del producto en la tienda pública depende del campo `activo` y del nivel de `stock`:
+
+| Condición | Resultado |
+|---|---|
+| `activo = 1` | El producto es visible en `Frontend/productos.php` |
+| `activo = 0` | El producto está oculto en la tienda, pero permanece en la base de datos |
+| `stock <= 3` | La tarjeta del producto muestra la insignia **"¡Pocas Unidades!"** |
+| `stock <= 5` | El dashboard del admin muestra una alerta de stock bajo para ese producto |
+| `stock = 0` | El producto puede quedar sin disponibilidad; considera desactivarlo temporalmente |
+
+<Tip>
+  Establece `activo = 0` directamente en la base de datos (o mediante el formulario de edición) para ocultar un producto de la tienda sin eliminarlo. Esto es útil para productos temporalmente sin stock o en revisión de precio, ya que conserva todo el historial del registro.
+</Tip>
+
+---
+
+## Editar un producto
+
+Haz clic en el botón **Editar** en la fila correspondiente de la tabla. La acción apunta a:
+
+```
+editar_producto.php?id=X
+```
+
+donde `X` es el `id` del producto. El formulario de edición se precarga con los valores actuales del registro. Modifica únicamente los campos que necesitas actualizar y guarda los cambios.
+
+---
+
+## Eliminar un producto
+
+Haz clic en el botón **Eliminar** en la fila del producto. Antes de ejecutar la acción, el sistema muestra un cuadro de confirmación de JavaScript para prevenir eliminaciones accidentales. Al confirmar, la solicitud se envía a:
+
+```
+eliminar_producto.php?id=X
+```
+
+La eliminación es **permanente**. Si necesitas retirar un producto de la tienda de forma temporal, usa la opción de desactivar (`activo = 0`) en lugar de eliminar.

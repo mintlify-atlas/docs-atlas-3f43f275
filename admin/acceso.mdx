@@ -1,0 +1,118 @@
+---
+title: "Cómo acceder al panel de administración de LUVEN"
+sidebarTitle: "Acceso Admin"
+description: "Crea un usuario administrador en MySQL y accede al panel de control de LUVEN. Incluye el flujo de autenticación, gestión de sesión y cierre de sesión seguro."
+---
+
+El acceso al panel de administración de LUVEN está restringido a usuarios con el rol `admin` almacenado en la base de datos MySQL. La autenticación es gestionada por `adisionales/auth.php`, que valida las credenciales enviadas desde el formulario de inicio de sesión, establece las variables de sesión PHP correspondientes y redirige automáticamente según el rol del usuario autenticado. A continuación se describe el proceso completo desde la creación del usuario hasta el cierre de sesión.
+
+<Warning>
+  No utilices las credenciales del usuario `root` de MySQL en producción. Crea un usuario MySQL dedicado con únicamente los privilegios `SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre la base de datos `mecanica`.
+</Warning>
+
+## Flujo de acceso
+
+<Steps>
+  <Step title="Crear el usuario administrador en MySQL">
+    Antes de intentar iniciar sesión, debe existir un registro en la tabla `usuarios` con el campo `rol` establecido como `'admin'`. Las contraseñas se almacenan como hashes generados con `password_hash()` de PHP (algoritmo `PASSWORD_BCRYPT`). Genera el hash primero en PHP y luego úsalo en la sentencia `INSERT`:
+
+    ```php
+    // Ejecuta esto en PHP para obtener el hash de tu contraseña:
+    echo password_hash('tu_contraseña_segura', PASSWORD_BCRYPT);
+    ```
+
+    Una vez obtenido el hash, inserta el usuario en la base de datos:
+
+    ```sql
+    -- Generate the hash first in PHP:
+    -- echo password_hash('tu_contraseña_segura', PASSWORD_BCRYPT);
+
+    INSERT INTO usuarios (nombre, correo, telefono, password, rol)
+    VALUES (
+      'Admin LUVEN',
+      'admin@luven.com',
+      '900000000',
+      '$2y$10$HASH_GENERADO_POR_PHP',
+      'admin'
+    );
+    ```
+
+    <Note>
+      El valor del campo `rol` debe ser exactamente `'admin'` en minúsculas. Cualquier variación (por ejemplo `'Admin'` o `'ADMIN'`) hará que la validación de sesión falle y el usuario sea redirigido al login.
+    </Note>
+  </Step>
+
+  <Step title="Navegar a la página de inicio de sesión">
+    Abre tu navegador y accede a la siguiente URL, reemplazando `localhost` por el hostname de tu servidor si es necesario:
+
+    ```
+    http://localhost/Proyecto_mecanica/Frontend/login.php
+    ```
+
+    Ingresa el correo electrónico y la contraseña del usuario administrador en el formulario. Al enviar, el formulario realiza una petición `POST` al controlador de autenticación:
+
+    ```
+    adisionales/auth.php?accion=login
+    ```
+  </Step>
+
+  <Step title="Autenticación y redirección automática al panel">
+    El archivo `adisionales/auth.php` procesa la acción `login` en tres pasos:
+
+    1. Busca al usuario por correo en la base de datos:
+       ```sql
+       SELECT * FROM usuarios WHERE correo = ?
+       ```
+    2. Verifica la contraseña usando `password_verify()` de PHP contra el hash almacenado.
+    3. Si las credenciales son válidas, establece las variables de sesión y redirige según el rol:
+
+    ```php
+    $_SESSION['usuario_id'] = $usuario['id'];
+    $_SESSION['nombre']     = $usuario['nombre'];
+    $_SESSION['rol']        = $usuario['rol']; // 'admin' or 'cliente'
+    ```
+
+    Cuando `$_SESSION['rol']` es `'admin'`, la redirección apunta directamente al panel de administración:
+
+    ```
+    http://localhost/Proyecto_mecanica/ADMIN/admin.php
+    ```
+  </Step>
+
+  <Step title="Cerrar sesión de forma segura">
+    Para finalizar la sesión, haz clic en el enlace **Salir** ubicado en la barra de navegación superior del panel. Este enlace apunta a:
+
+    ```
+    adisionales/auth.php?accion=logout
+    ```
+
+    El controlador destruye la sesión PHP activa con `session_destroy()` y redirige al usuario a la página de inicio de sesión. Después del logout, cualquier intento de acceder a una URL de `ADMIN/` directamente resultará en una redirección inmediata al login.
+  </Step>
+</Steps>
+
+## Variables de sesión activas
+
+Durante toda la navegación por el panel, PHP mantiene activas las siguientes variables de sesión establecidas en el momento del login:
+
+```php
+$_SESSION['usuario_id'] = $usuario['id'];
+$_SESSION['nombre']     = $usuario['nombre'];
+$_SESSION['rol']        = $usuario['rol']; // 'admin' or 'cliente'
+```
+
+Estas variables son consultadas en cada archivo PHP de la carpeta `ADMIN/` para verificar que el usuario sigue autorizado antes de procesar cualquier operación.
+
+## Protección en todos los módulos administrativos
+
+Todos los archivos dentro de `ADMIN/` — incluyendo los módulos de productos, servicios, citas, categorías, marcas, modelos y trabajadores — incluyen la misma verificación de sesión al inicio del script:
+
+```php
+if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
+    header("Location: ../Frontend/login.php");
+    exit;
+}
+```
+
+<Note>
+  Si un usuario con rol `'cliente'` intenta acceder directamente a cualquier página de `ADMIN/` (por ejemplo pegando la URL en el navegador), PHP lo redirigirá inmediatamente a la página de login. La llamada a `exit` después del `header()` garantiza que ningún contenido adicional del script sea procesado o enviado al cliente.
+</Note>
